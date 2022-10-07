@@ -7,8 +7,9 @@ SCREEN_HEIGHT = 480
 RADIUS = 15
 
 # HOST CONFIG
-HOST = '192.168.31.11'
+HOST = socket.gethostbyname(socket.gethostname())
 PORT = 5000
+print(HOST, PORT)
 MOVEMENT_SPEED = 10
 
 # Player Two Config
