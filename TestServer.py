@@ -1,5 +1,68 @@
 import socket
 import pickle
+import sys
+
+'''
+def DinamicSend(sock, senddata):
+    while True:
+        sock.send(senddata)
+        sock.send("$finish$".encode('utf-8'))
+        packet = sock.recv(1024)
+        if str(packet[-8:].decode('utf-8')) == "$finish$":
+            packet = packet[:-8]
+        if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
+            sock.send("YES".encode('utf-8'))
+            sock.send("$finish$".encode('utf-8'))
+            break
+        else:
+            sock.send("NO".encode('utf-8'))
+            sock.send("$finish$".encode('utf-8'))
+'''
+
+def DinamicSend(sock, senddata):
+    Connection = True
+    print("IN SEND")
+    while Connection:
+        print("send data")
+        sock.send(senddata)
+        print("wait size")
+        packet = sock.recv(1024)
+        print("size get")
+        if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
+            print("right size")
+            sock.send("YES".encode('utf-8'))
+            Connection = False
+        else:
+            print("bad size")
+            sock.send("NO".encode('utf-8'))
+    print("OUT SEND")
+def DinamicReciev(sock):
+    data = bytearray()
+    Connection = True
+    print("IN")
+    while Connection:
+        # First Get
+        print("wait data")
+        packet = sock.recv(1024)
+        # print(str(packet.decode('utf-8')))
+        data = packet
+
+        print("data get")
+
+        # Second Get
+        print("send size")
+        sock.send(str(sys.getsizeof(data)).encode('utf-8'))
+        print("wait accept")
+        packet = sock.recv(1024)
+        # print(str(packet.decode('utf-8')))
+        print("get accept")
+        if str(packet.decode('utf-8')) == "YES":
+            print("data is ok")
+            Connection = False
+        else:
+            print("data is not ok")
+    print("OUT")
+    return data
 
 # Client Config
 SCREEN_WIDTH = 640
@@ -107,26 +170,27 @@ def main():
     Client, Address = ServerSock.accept()
 
     Clients['Player1'] = [Client, Address]
-    print("Connected to", {Clients['Player1'][1]})
+    print("Connected to", {Clients['Player1'][0]})
 
     Client, Address = ServerSock.accept()
 
     Clients['Player2'] = [Client, Address]
-    print("Connected to", {Clients['Player2'][1]})
+    print("Connected to", {Clients['Player2'][0]})
 
-    Clients['Player1'][0].send('Player1'.encode())
-    Clients['Player1'][0].send('Player2'.encode())
+    DinamicSend(Clients['Player1'][0], 'Player1'.encode('utf-8'))
+    DinamicSend(Clients['Player1'][0], 'Player2'.encode('utf-8'))
 
-    Clients['Player2'][0].send('Player2'.encode())
-    Clients['Player2'][0].send('Player1'.encode())
+    DinamicSend(Clients['Player2'][0], 'Player2'.encode('utf-8'))
+    DinamicSend(Clients['Player2'][0], 'Player1'.encode('utf-8'))
 
-    Clients['Player1'][0].send(pickle.dumps(Players))
-    Clients['Player2'][0].send(pickle.dumps(Players))
+    DinamicSend(Clients['Player1'][0], pickle.dumps(Players))
+    DinamicSend(Clients['Player2'][0], pickle.dumps(Players))
+
 
     Connection = True
     while Connection:
         try:
-            Data = Clients['Player1'][0].recv(1024)
+            Data = DinamicReciev(Clients['Player1'][0])
         except ConnectionError:
             print("Connection has been resolved")
             Connection = False
@@ -144,7 +208,7 @@ def main():
             print("Data has benn broken")
 
         try:
-            Data = Clients['Player2'][0].recv(1024)
+            Data = DinamicReciev(Clients['Player2'][0])
         except ConnectionError:
             print("Connection has been resolved")
             Connection = False
@@ -161,8 +225,8 @@ def main():
         except:
             print("Data has benn broken")
 
-        Clients['Player1'][0].send(pickle.dumps(Players))
-        Clients['Player2'][0].send(pickle.dumps(Players))
+        DinamicSend(Clients['Player1'][0], pickle.dumps(Players))
+        DinamicSend(Clients['Player2'][0], pickle.dumps(Players))
 
 
 main()

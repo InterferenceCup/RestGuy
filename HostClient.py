@@ -3,6 +3,78 @@ import socket
 import arcade
 import pickle
 
+'''
+def DinamicReciev(sock):
+    data = bytearray()
+    while True:
+        # First Get
+        packet = sock.recv(1024)
+        print(str(packet.decode('utf-8')))
+        if packet[-8:].decode('utf-8') == b"$finish$":
+            packet = packet[:-8]
+        data = packet
+
+        print("GET")
+
+        # Second Get
+        sock.send(str(sys.getsizeof(data)).encode('utf-8'))
+        sock.send("$finish$".encode('utf-8'))
+
+        packet = sock.recv(1024)
+        print(str(packet.decode('utf-8')))
+        if packet[-8:].decode('utf-8') == b"$finish$":
+            packet = packet[:-8]
+        if packet.decode('utf-8') == b"YES":
+            break
+
+    return data
+'''
+def DinamicSend(sock, senddata):
+    Connection = True
+    print("IN SEND")
+    while Connection:
+        print("send data")
+        sock.send(senddata)
+        print("wait size")
+        packet = sock.recv(1024)
+        print("size get")
+        if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
+            print("right size")
+            sock.send("YES".encode('utf-8'))
+            Connection = False
+        else:
+            print("bad size")
+            sock.send("NO".encode('utf-8'))
+    print("OUT SEND")
+
+def DinamicReciev(sock):
+    data = bytearray()
+    Connection = True
+    print("IN")
+    while Connection:
+        # First Get
+        print("wait data")
+        packet = sock.recv(1024)
+        # print(str(packet.decode('utf-8')))
+        data = packet
+
+        print("data get")
+
+        # Second Get
+        print("send size")
+        sock.send(str(sys.getsizeof(data)).encode('utf-8'))
+        print("wait accept")
+        packet = sock.recv(1024)
+        # print(str(packet.decode('utf-8')))
+        print("get accept")
+        if str(packet.decode('utf-8')) == "YES":
+            print("data is ok")
+            Connection = False
+        else:
+            print("data is not ok")
+    print("OUT")
+    return data
+
 SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
 MOVEMENT_SPEED = 10
@@ -22,15 +94,20 @@ while Connection:
         print("Trying to connect to server")
         Connection = True
 
-PlayerNumber = ClientSock.recv(1024).decode()
-PlayerAnotherNumber = ClientSock.recv(1024).decode()
+# PlayerNumber = ClientSock.recv(1024).decode('utf-8', errors='ignore')
+PlayerNumber = DinamicReciev(ClientSock).decode('utf-8')
+print(PlayerNumber)
+# PlayerAnotherNumber = ClientSock.recv(1024).decode('utf-8', errors='ignore')
+PlayerAnotherNumber = DinamicReciev(ClientSock).decode('utf-8')
+print(PlayerAnotherNumber)
 
 print(PlayerNumber, PlayerAnotherNumber)
 
 Connection = True
 while Connection:
     try:
-        Data = pickle.loads(ClientSock.recv(1024))
+        Data = DinamicReciev(ClientSock)
+        Data = pickle.loads(Data)
         Connection = False
     except ConnectionError:
         print("Waiting another players")
@@ -126,10 +203,9 @@ class TheGame(arcade.Window):
         self.player2.draw()
 
     def update(self, delta_time):
-        ClientSock.send(str(self.player.player_information).encode())
+        DinamicSend(ClientSock, str(self.player.player_information).encode())
 
-        Data = pickle.loads(ClientSock.recv(2048))
-
+        Data = pickle.loads(DinamicReciev(ClientSock))
         # print(Data)
         self.player.set_position(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'])
         self.player2.set_position(Data[PlayerAnotherNumber]['X'], Data[PlayerAnotherNumber]['Y'])
