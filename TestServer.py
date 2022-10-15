@@ -21,47 +21,47 @@ def DinamicSend(sock, senddata):
 
 def DinamicSend(sock, senddata):
     Connection = True
-    print("IN SEND")
+    # print("IN SEND")
     while Connection:
-        print("send data")
+        # print("send data")
         sock.send(senddata)
-        print("wait size")
+        # print("wait size")
         packet = sock.recv(1024)
-        print("size get")
+        # print("size get")
         if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
-            print("right size")
+            # print("right size")
             sock.send("YES".encode('utf-8'))
             Connection = False
         else:
-            print("bad size")
+            # print("bad size")
             sock.send("NO".encode('utf-8'))
-    print("OUT SEND")
+    # print("OUT SEND")
 def DinamicReciev(sock):
     data = bytearray()
     Connection = True
-    print("IN")
+    # print("IN")
     while Connection:
         # First Get
-        print("wait data")
+        # print("wait data")
         packet = sock.recv(1024)
         # print(str(packet.decode('utf-8')))
         data = packet
 
-        print("data get")
+        # print("data get")
 
         # Second Get
-        print("send size")
+        # print("send size")
         sock.send(str(sys.getsizeof(data)).encode('utf-8'))
-        print("wait accept")
+        # print("wait accept")
         packet = sock.recv(1024)
         # print(str(packet.decode('utf-8')))
-        print("get accept")
+        # print("get accept")
         if str(packet.decode('utf-8')) == "YES":
-            print("data is ok")
+            # print("data is ok")
             Connection = False
-        else:
-            print("data is not ok")
-    print("OUT")
+        # else:
+            # print("data is not ok")
+    # print("OUT")
     return data
 
 # Client Config
