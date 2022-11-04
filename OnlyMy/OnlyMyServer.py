@@ -1,6 +1,7 @@
 import socket
 import pickle
 import sys
+import Sprites.JsonReadTest as TileMap
 
 def DinamicSend(sock, senddata):
     Connection = True
@@ -50,14 +51,23 @@ def DinamicReciev(sock):
 
 # Client Config
 SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 480
+SCREEN_HEIGHT = 640
 RADIUS = 15
+
+Walls = TileMap.ReadJson('Sprites/test_map_1')
+for j in range(20):
+    for i in range(20):
+        if Walls[19 - j][i].center != -1:
+            print("#", end = '')
+        else:
+            print("_", end = '')
+    print()
 
 # HOST CONFIG
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 5000
 print(HOST, PORT)
-MOVEMENT_SPEED = 10
+MOVEMENT_SPEED = 5
 
 '''
 # Player Two Config
@@ -91,26 +101,97 @@ def edit_position(information, PlayerInformation):
         PlayerInformation['X'] += 0
         PlayerInformation['Y'] += 0
     else:
+        PlayerTile = TileMap.GetTile(PlayerInformation['X'], PlayerInformation['Y'])
         if get_information(information, 7, 1):
             if PlayerInformation['X'] - MOVEMENT_SPEED >= RADIUS:
-                PlayerInformation['X'] += -MOVEMENT_SPEED
+                Wall = Walls[PlayerTile[1]][PlayerTile[0] - 1]
+                CenterWall = Wall.center
+                if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y']) == 1:
+                    PlayerInformation['X'] += ( Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS ) / 2
+                else:
+                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
+                    if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y'] + RADIUS) == 1:
+                        PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS) / 2
+                        if CenterWall == -1:
+                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS - 1) / 2
+                    else:
+                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
+                        if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y'] - RADIUS) == 1:
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS) / 2
+                            if CenterWall == -1:
+                                PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS + 1) / 2
+                        else:
+                            PlayerInformation['X'] += -MOVEMENT_SPEED
             else:
                 PlayerInformation['X'] = RADIUS
         elif get_information(information, 6, 1):
             if PlayerInformation['X'] + MOVEMENT_SPEED <= SCREEN_WIDTH - RADIUS:
-                PlayerInformation['X'] += MOVEMENT_SPEED
+                Wall = Walls[PlayerTile[1]][PlayerTile[0] + 1]
+                CenterWall = Wall.center
+                if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED, PlayerInformation['Y']) == 1:
+                    PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                else:
+                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
+                    if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED,
+                                      PlayerInformation['Y'] + RADIUS) == 1:
+                        PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS) / 2
+                        if CenterWall == -1:
+                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS - 1) / 2
+                    else:
+                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
+                        if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED,
+                                          PlayerInformation['Y'] - RADIUS) == 1:
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS) / 2
+                            if CenterWall == -1:
+                                PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS + 1) / 2
+                        else:
+                            PlayerInformation['X'] += MOVEMENT_SPEED
             else:
                 PlayerInformation['X'] = SCREEN_WIDTH - RADIUS
-
         if get_information(information, 5, 1):
             if PlayerInformation['Y'] + MOVEMENT_SPEED <= SCREEN_HEIGHT - RADIUS:
-                PlayerInformation['Y'] += MOVEMENT_SPEED
+                Wall = Walls[PlayerTile[1] + 1][PlayerTile[0]]
+                CenterWall = Wall.center
+                if Wall.collision(PlayerInformation['X'], PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
+                    PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                else:
+                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
+                    if Wall.collision(PlayerInformation['X'] - RADIUS, PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
+                        PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                        if CenterWall == -1:
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS + 1) / 2
+                    else:
+                        Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
+                        if Wall.collision(PlayerInformation['X'] + RADIUS, PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
+                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                            if CenterWall == -1:
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                        else:
+                            PlayerInformation['Y'] += MOVEMENT_SPEED
             else:
                 PlayerInformation['Y'] = SCREEN_HEIGHT - RADIUS
-
         elif get_information(information, 4, 1):
             if PlayerInformation['Y'] - MOVEMENT_SPEED >= RADIUS:
-                PlayerInformation['Y'] += -MOVEMENT_SPEED
+                Wall = Walls[PlayerTile[1] - 1][PlayerTile[0]]
+                CenterWall = Wall.center
+                if Wall.collision(PlayerInformation['X'], PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
+                    PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                else:
+                    Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
+                    if Wall.collision(PlayerInformation['X'] - RADIUS,
+                                      PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
+                        PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                        if CenterWall == -1:
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS + 1) / 2
+                    else:
+                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
+                        if Wall.collision(PlayerInformation['X'] + RADIUS,
+                                          PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
+                            PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                            if CenterWall == -1:
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                        else:
+                            PlayerInformation['Y'] += -MOVEMENT_SPEED
             else:
                 PlayerInformation['Y'] = RADIUS
     return PlayerInformation
@@ -125,8 +206,8 @@ def main():
     Clients = {}
 
     # Player One Config
-    PlayerOnePositionX = 50
-    PlayerOnePositionY = 50
+    PlayerOnePositionX = 20
+    PlayerOnePositionY = 20
     PlayerOneColor = "007CAD"
     PlayerOneInformation = {
         'X': PlayerOnePositionX,

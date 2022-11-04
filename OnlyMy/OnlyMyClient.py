@@ -3,6 +3,13 @@ import socket
 import arcade
 import pickle
 
+TILE_SCALING = 0.625
+GRID_PIXEL_SIZE = 64
+
+DEFAULT_SCREEN_WIDTH = 640
+DEFAULT_SCREEN_HEIGHT = 640
+SCREEN_TITLE = "Tiles"
+
 def DinamicSend(sock, senddata):
     Connection = True
     # print("IN SEND")
@@ -105,6 +112,7 @@ class Player:
                                   self.radius,
                                   self.color)
 
+
     def set_information(self, number_of_bit, change):
         if change == 1:
             mask = 1
@@ -169,10 +177,26 @@ class TheGame(arcade.Window):
         arcade.set_background_color(arcade.color.ASH_GREY)
 
         self.player = Player(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'], 0, 0, 15, arcade.color_from_hex_string(Data[PlayerNumber]['COLOR']))
+
+        self.floor_list = None
+        self.wall_list = None
+        self.tile_map = None
+
         # self.player2 = OtherPlayer(Data[PlayerAnotherNumber]['X'], Data[PlayerAnotherNumber]['Y'], 15, arcade.color_from_hex_string(Data[PlayerAnotherNumber]['COLOR']))
+
+    def setup(self):
+        self.wall_list = arcade.SpriteList()
+        self.floor_list = arcade.SpriteList()
+
+        self.tile_map = arcade.load_tilemap("Sprites/test_map_1.json", scaling=TILE_SCALING)
+        self.floor_list = self.tile_map.sprite_lists["Base"]
+        self.wall_list = self.tile_map.sprite_lists["Walls"]
 
     def on_draw(self):
         arcade.start_render()
+
+        self.floor_list.draw()
+        self.wall_list.draw()
         self.player.draw()
         # self.player2.draw()
 
@@ -206,7 +230,8 @@ class TheGame(arcade.Window):
 
 
 def main():
-    window = TheGame(640, 480, "Drawing Example")
+    window = TheGame(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, SCREEN_TITLE)
+    window.setup()
     arcade.run()
 
 main()
