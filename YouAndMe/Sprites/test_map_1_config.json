@@ -1,0 +1,14 @@
+{
+  "layers": ["Walls"],
+  "scale": 0.625,
+  "tile": 64,
+  "config": {
+      "Walls": {
+        "y_top": 32,
+        "y_down": -32,
+        "x_right": 32,
+        "x_left": -32,
+        "center": 0
+    }
+  }
+}
