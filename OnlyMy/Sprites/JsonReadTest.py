@@ -5,13 +5,13 @@ from math import trunc
 # Class for Walls named Object
 class Object:
     def __init__(self):
-        self.x = 0          # Create x
-        self.y = 0          # Create y
-        self.center = -1    # Create center (existing of wall)
-        self.x_right = 0    # X right board
-        self.x_left = 0     # X left board
-        self.y_top = 0      # Y top board
-        self.y_down = 0     # Y down board
+        self.x = 0  # Create x
+        self.y = 0  # Create y
+        self.center = -1  # Create center (existing of wall)
+        self.x_right = 0  # X right board
+        self.x_left = 0  # X left board
+        self.y_top = 0  # Y top board
+        self.y_down = 0  # Y down board
 
     def set_coordinates(self, X, Y):
         self.x = X
@@ -45,6 +45,12 @@ def GetTileScale(JsonName):
         Data = json.load(TileMapConfig)
         TileScale = Data["tile"] * Data["scale"]
     return TileScale
+
+
+def GetScale(JsonName):
+    with open(JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+        Scale = json.load(TileMapConfig)["scale"]
+    return Scale
 
 
 def ReadJson(JsonName):
@@ -101,3 +107,9 @@ def GetTile(X, Y, TileScale):
     PosX = trunc(X / TileScale)
     PosY = trunc(Y / TileScale)
     return [PosX, PosY]
+
+
+def GetConfig(JsonName):
+    with open(JsonName + '.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return [Data["screen_height"], Data["screen_width"], Data["title"]]

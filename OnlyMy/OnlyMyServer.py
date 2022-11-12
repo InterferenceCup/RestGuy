@@ -28,8 +28,9 @@ def GetInformation(Information, NumberOfBit, Value):
 # Edit position
 def EditPosition(information, PlayerInformation, Walls, TileScale):
     # Client Config
-    ScreenWidth = 640
-    ScreenHeight = 640
+    Config = TileMap.GetConfig("Config")
+    ScreenWidth = Config[1]
+    ScreenHeight = Config[0]
     Radius = 15
     MovementSpeed = 5
 
@@ -52,14 +53,15 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                         PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                         if CenterWall == -1:
                             PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                            PlayerInformation['X'] += -MovementSpeed
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
                         if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
                                           PlayerInformation['Y'] - Radius) == 1:
                             PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
-                                    'Y'] + Radius + 1) / 2
+                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
+                                PlayerInformation['X'] += -MovementSpeed
                         else:
                             PlayerInformation['X'] += -MovementSpeed
             else:
@@ -78,14 +80,15 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                         PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
                         if CenterWall == -1:
                             PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                            PlayerInformation['X'] += MovementSpeed
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
                         if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
                                           PlayerInformation['Y'] - Radius) == 1:
                             PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
-                                    'Y'] + Radius + 1) / 2
+                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
+                                PlayerInformation['X'] += MovementSpeed
                         else:
                             PlayerInformation['X'] += MovementSpeed
             else:
@@ -104,14 +107,15 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                         PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                         if CenterWall == -1:
                             PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                            PlayerInformation['Y'] += MovementSpeed
                     else:
                         Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
                         if Wall.collision(PlayerInformation['X'] + Radius,
                                           PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
                             PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
-                                    'X'] - Radius - 1) / 2
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
+                                PlayerInformation['Y'] += MovementSpeed
                         else:
                             PlayerInformation['Y'] += MovementSpeed
             else:
@@ -130,14 +134,15 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                         PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                         if CenterWall == -1:
                             PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                            PlayerInformation['Y'] += -MovementSpeed
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
                         if Wall.collision(PlayerInformation['X'] + Radius,
                                           PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
                             PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
-                                    'X'] - Radius - 1) / 2
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
+                                PlayerInformation['Y'] += -MovementSpeed
                         else:
                             PlayerInformation['Y'] += -MovementSpeed
             else:
@@ -187,6 +192,7 @@ def main():
     print("Connected to", {Clients['Player1'][0]})  # Printing for me
     Server.DynamicSend(Clients['Player1'][0], 'Player1'.encode('utf-8'))  # Send name of Client
     Server.DynamicSend(Clients['Player1'][0], pickle.dumps(Players))  # Send X and Y
+    Server.DynamicSend(Clients['Player1'][0], 'Sprites/test_map_1'.encode('utf-8'))
 
     # Start working
     while True:
@@ -222,7 +228,8 @@ def main():
             try:
                 Clients['Player1'] = Server.Accept(ServerSock,
                                                    Players,
-                                                   'Player1')  # Try to create new connection
+                                                   'Player1',
+                                                   'Sprites/test_map_1')  # Try to create new connection
             except:
                 print("Bad")
 

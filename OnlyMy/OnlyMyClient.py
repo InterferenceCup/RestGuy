@@ -3,58 +3,18 @@ import socket
 import arcade
 import pickle
 import ServerFunctions as Client
-
-TILE_SCALING = 0.625
-
-DEFAULT_SCREEN_WIDTH = 640
-DEFAULT_SCREEN_HEIGHT = 640
-SCREEN_TITLE = "Tiles"
-
-
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 480
-MOVEMENT_SPEED = 10
-
-HOST = socket.gethostbyname(socket.gethostname())
-PORT = 5000
-
-ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-Data = {}
-
-Connection = True
-while Connection:
-    try:
-        ClientSock.connect((HOST, PORT))
-        print("Ok")
-        Connection = False
-    except ConnectionError:
-        print("Trying to connect to server")
-        Connection = True
-
-# PlayerNumber = ClientSock.recv(1024).decode('utf-8', errors='ignore')
-PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
-print(PlayerNumber)
-# PlayerAnotherNumber = DinamicReciev(ClientSock).decode('utf-8')
-# print(PlayerAnotherNumber)
-
-# print(PlayerNumber, PlayerAnotherNumber)
-
-Connection = True
-while Connection:
-    try:
-        Data = Client.DynamicRecv(ClientSock)
-        Data = pickle.loads(Data)
-        print(Data)
-        Connection = False
-    except ConnectionError:
-        print("Waiting another players")
-        Connection = True
+import Sprites.JsonReadTest as TileMap
 
 
 class Player:
-    player_information = int
-
-    def __init__(self, pos_x, pos_y, change_x, change_y, radius, color):
+    def __init__(self,
+                 pos_x,
+                 pos_y,
+                 change_x,
+                 change_y,
+                 radius,
+                 color,
+                 number):
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.change_x = change_x
@@ -62,6 +22,7 @@ class Player:
         self.radius = radius
         self.color = color
         self.player_information = 0
+        self.number = number
 
     def draw(self):
         arcade.draw_circle_filled(self.pos_x,
@@ -104,50 +65,39 @@ class Player:
         self.pos_y = pos_y
 
 
-'''
-class OtherPlayer:
-
-    def __init__(self, pos_x, pos_y, radius, color):
-        self.pos_x = pos_x
-        self.pos_y = pos_y
-        self.radius = radius
-        self.color = color
-
-    def draw(self):
-        arcade.draw_circle_filled(self.pos_x,
-                                  self.pos_y,
-                                  self.radius,
-                                  self.color)
-
-    def set_position(self, pos_x, pos_y):
-        self.pos_x = pos_x
-        self.pos_y = pos_y
-'''
-
-
 class TheGame(arcade.Window):
 
-    def __init__(self, width, height, title):
-
+    def __init__(self,
+                 width,
+                 height,
+                 title,
+                 data,
+                 playernumber,
+                 sock):
         super().__init__(width, height, title)
 
-        self.set_mouse_visible(False)
         arcade.set_background_color(arcade.color.ASH_GREY)
 
-        self.player = Player(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'], 0, 0, 15,
-                             arcade.color_from_hex_string(Data[PlayerNumber]['COLOR']))
-
+        self.set_mouse_visible(False)
+        self.player = Player(data[playernumber]['X'],
+                             data[playernumber]['Y'],
+                             0,
+                             0,
+                             15,
+                             arcade.color_from_hex_string(data[playernumber]['COLOR']),
+                             playernumber)
         self.floor_list = None
         self.wall_list = None
         self.tile_map = None
+        self.sock = sock
 
-        # self.player2 = OtherPlayer(Data[PlayerAnotherNumber]['X'], Data[PlayerAnotherNumber]['Y'], 15, arcade.color_from_hex_string(Data[PlayerAnotherNumber]['COLOR']))
+    def setup(self, Map):
+        TileScale = TileMap.GetScale(Map)
 
-    def setup(self):
         self.wall_list = arcade.SpriteList()
         self.floor_list = arcade.SpriteList()
 
-        self.tile_map = arcade.load_tilemap("Sprites/test_map_1.json", scaling=TILE_SCALING)
+        self.tile_map = arcade.load_tilemap(Map + '.json', scaling=TileScale)
         self.floor_list = self.tile_map.sprite_lists["Base"]
         self.wall_list = self.tile_map.sprite_lists["Walls"]
 
@@ -157,20 +107,18 @@ class TheGame(arcade.Window):
         self.floor_list.draw()
         self.wall_list.draw()
         self.player.draw()
-        # self.player2.draw()
 
     def update(self, delta_time):
-        if Client.DynamicSend(ClientSock, str(self.player.player_information).encode()) != 0:
+        if Client.DynamicSend(self.sock, str(self.player.player_information).encode()) != 0:
             print("Bad")
 
         try:
-            Data = pickle.loads(Client.DynamicRecv(ClientSock))
+            Data = pickle.loads(Client.DynamicRecv(self.sock))
         except:
             Data = None
-        # print(Data)
+
         if Data != None:
-            self.player.set_position(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'])
-        # self.player2.set_position(Data[PlayerAnotherNumber]['X'], Data[PlayerAnotherNumber]['Y'])
+            self.player.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
@@ -194,8 +142,53 @@ class TheGame(arcade.Window):
 
 
 def main():
-    window = TheGame(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, SCREEN_TITLE)
-    window.setup()
+    # Window config
+    Window = TileMap.GetConfig("config")
+
+    # Socket config
+    HOST = socket.gethostbyname(socket.gethostname())
+    PORT = 5000
+
+    # Create Socket
+    ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connection to server
+    while True:
+        try:
+            ClientSock.connect((HOST, PORT))
+            print("Ok")
+            break
+        except ConnectionError:
+            print("Trying to connect to server")
+
+    # Listen PlayerNumber
+    PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
+    print(PlayerNumber)     # Print it for me
+
+    # Listen Data for balls
+    while True:
+        try:
+            Data = Client.DynamicRecv(ClientSock)   # Listen data
+            Data = pickle.loads(Data)   # Process data
+            print(Data)     # Print it for me
+            break
+        except ConnectionError:
+            print("Waiting another players")
+
+    # Listen map
+    Map = Client.DynamicRecv(ClientSock).decode('utf-8')
+
+    # Create Game
+    #   Create window
+    window = TheGame(Window[1],
+                     Window[0],
+                     Window[2],
+                     Data,
+                     PlayerNumber,
+                     ClientSock)
+    #   Setup window
+    window.setup(Map)
+    #   Start game
     arcade.run()
 
 

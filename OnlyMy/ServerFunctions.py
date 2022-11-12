@@ -44,9 +44,10 @@ def DynamicRecv(sock):
     return data
 
 
-def Accept(Sock, Players, String):
+def Accept(Sock, Players, String, Map):
     Client, Address = Sock.accept()  # Accept socket
     print("Connected to", Address)  # Print to console
     DynamicSend(Client, String.encode('utf-8'))  # Send name
     DynamicSend(Client, pickle.dumps(Players))  # Send position
+    DynamicSend(Client, Map.encode('utf-8'))
     return [Client, Address]  # Return new address
