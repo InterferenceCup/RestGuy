@@ -62,12 +62,7 @@
          "visible":true,
          "width":20,
          "x":0,
-         "y":0,
-         "y_right": 20,
-         "y_left": -20,
-         "x_right": 20,
-         "x_left": -20,
-         "center": 0
+         "y":0
         }],
  "nextlayerid":3,
  "nextobjectid":1,

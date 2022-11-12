@@ -1,7 +1,7 @@
 { "compressionlevel":-1,
- "height":20,
- "infinite":false,
- "layers": [
+  "height":20,
+  "infinite":false,
+  "layers": [
         {
          "data":[4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -62,12 +62,7 @@
          "visible":true,
          "width":20,
          "x":0,
-         "y":0,
-         "y_right": -32,
-         "y_left": 32,
-         "x_right": -32,
-         "x_left": -32,
-         "center": 0
+         "y":0
         }],
  "nextlayerid":3,
  "nextobjectid":1,

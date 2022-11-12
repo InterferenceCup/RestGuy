@@ -1,301 +1,230 @@
 import socket
 import pickle
-import sys
 import Sprites.JsonReadTest as TileMap
+import ServerFunctions as Server
 
-def DinamicSend(sock, senddata):
-    Connection = True
-    # print("IN SEND")
-    while Connection:
-        # print("send data")
-        sock.send(senddata)
-        # print("wait size")
-        packet = sock.recv(1024)
-        # print("size get")
-        if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
-            # print("right size")
-            sock.send("YES".encode('utf-8'))
-            Connection = False
-        else:
-            # print("bad size")
-            sock.send("NO".encode('utf-8'))
-    # print("OUT SEND")
 
-def DinamicReciev(sock):
-    data = bytearray()
-    Connection = True
-    # print("IN")
-    while Connection:
-        # First Get
-        # print("wait data")
-        packet = sock.recv(1024)
-        # print(str(packet.decode('utf-8')))
-        data = packet
+# Get information
+def GetInformation(Information, NumberOfBit, Value):
+    Mask = 1    # Creating of mask
+    Mask = Mask << NumberOfBit   # Prepare mask for processing
 
-        # print("data get")
-
-        # Second Get
-        # print("send size")
-        sock.send(str(sys.getsizeof(data)).encode('utf-8'))
-        # print("wait accept")
-        packet = sock.recv(1024)
-        # print(str(packet.decode('utf-8')))
-        # print("get accept")
-        if str(packet.decode('utf-8')) == "YES":
-            # print("data is ok")
-            Connection = False
-        # else:
-            # print("data is not ok")
-    # print("OUT")
-    return data
-
-# Client Config
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 640
-RADIUS = 15
-
-Walls = TileMap.ReadJson('Sprites/test_map_1')
-for j in range(20):
-    for i in range(20):
-        if Walls[19 - j][i].center != -1:
-            print("#", end = '')
-        else:
-            print("_", end = '')
-    print()
-
-# HOST CONFIG
-HOST = socket.gethostbyname(socket.gethostname())
-PORT = 5000
-print(HOST, PORT)
-MOVEMENT_SPEED = 5
-
-'''
-# Player Two Config
-PlayerTwoPositionX = 50
-PlayerTwoPositionY = 50
-PlayerTwoColor = "EB5284"
-PlayerTwoInformation = {
-    'X': PlayerTwoPositionX,
-    'Y': PlayerTwoPositionY,
-    'COLOR': PlayerTwoColor
-}
-'''
-
-def get_information(information, number_of_bite, value):
-    mask = 1
-    mask = mask << number_of_bite
-    if value == 1:
-        if information & mask:
+    # If we must process by 1
+    if Value == 1:
+        # If we have one on our bit
+        if Information & Mask:
             return 1
+        # Else
         else:
             return 0
+    # If we must process by 0
     else:
-        if information & mask:
+        if Information & Mask:
             return 0
         else:
             return 1
 
 
-def edit_position(information, PlayerInformation):
+# Edit position
+def EditPosition(information, PlayerInformation, Walls, TileScale):
+    # Client Config
+    ScreenWidth = 640
+    ScreenHeight = 640
+    Radius = 15
+    MovementSpeed = 5
+
     if information == 0:
         PlayerInformation['X'] += 0
         PlayerInformation['Y'] += 0
     else:
-        PlayerTile = TileMap.GetTile(PlayerInformation['X'], PlayerInformation['Y'])
-        if get_information(information, 7, 1):
-            if PlayerInformation['X'] - MOVEMENT_SPEED >= RADIUS:
+        PlayerTile = TileMap.GetTile(PlayerInformation['X'], PlayerInformation['Y'], TileScale)
+        if GetInformation(information, 7, 1):
+            if PlayerInformation['X'] - MovementSpeed >= Radius:
                 Wall = Walls[PlayerTile[1]][PlayerTile[0] - 1]
                 CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y']) == 1:
-                    PlayerInformation['X'] += ( Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS ) / 2
+                if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
+                                  PlayerInformation['Y']) == 1:
+                    PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                 else:
                     Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
-                    if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y'] + RADIUS) == 1:
-                        PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS) / 2
+                    if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
+                                      PlayerInformation['Y'] + Radius) == 1:
+                        PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS - 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
-                        if Wall.collision(PlayerInformation['X'] - RADIUS - MOVEMENT_SPEED, PlayerInformation['Y'] - RADIUS) == 1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS) / 2
+                        if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
+                                          PlayerInformation['Y'] - Radius) == 1:
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS + 1) / 2
+                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                    'Y'] + Radius + 1) / 2
                         else:
-                            PlayerInformation['X'] += -MOVEMENT_SPEED
+                            PlayerInformation['X'] += -MovementSpeed
             else:
-                PlayerInformation['X'] = RADIUS
-        elif get_information(information, 6, 1):
-            if PlayerInformation['X'] + MOVEMENT_SPEED <= SCREEN_WIDTH - RADIUS:
+                PlayerInformation['X'] = Radius
+        elif GetInformation(information, 6, 1):
+            if PlayerInformation['X'] + MovementSpeed <= ScreenWidth - Radius:
                 Wall = Walls[PlayerTile[1]][PlayerTile[0] + 1]
                 CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED, PlayerInformation['Y']) == 1:
-                    PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
+                                  PlayerInformation['Y']) == 1:
+                    PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
                 else:
                     Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
-                    if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED,
-                                      PlayerInformation['Y'] + RADIUS) == 1:
-                        PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS) / 2
+                    if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
+                                      PlayerInformation['Y'] + Radius) == 1:
+                        PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS - 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + RADIUS + MOVEMENT_SPEED,
-                                          PlayerInformation['Y'] - RADIUS) == 1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS) / 2
+                        if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
+                                          PlayerInformation['Y'] - Radius) == 1:
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS + 1) / 2
+                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                    'Y'] + Radius + 1) / 2
                         else:
-                            PlayerInformation['X'] += MOVEMENT_SPEED
+                            PlayerInformation['X'] += MovementSpeed
             else:
-                PlayerInformation['X'] = SCREEN_WIDTH - RADIUS
-        if get_information(information, 5, 1):
-            if PlayerInformation['Y'] + MOVEMENT_SPEED <= SCREEN_HEIGHT - RADIUS:
+                PlayerInformation['X'] = ScreenWidth - Radius
+        if GetInformation(information, 5, 1):
+            if PlayerInformation['Y'] + MovementSpeed <= ScreenHeight - Radius:
                 Wall = Walls[PlayerTile[1] + 1][PlayerTile[0]]
                 CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'], PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
-                    PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                if Wall.collision(PlayerInformation['X'],
+                                  PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
+                    PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                 else:
                     Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
-                    if Wall.collision(PlayerInformation['X'] - RADIUS, PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
-                        PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                    if Wall.collision(PlayerInformation['X'] - Radius,
+                                      PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
+                        PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS + 1) / 2
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
                     else:
                         Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + RADIUS, PlayerInformation['Y'] + RADIUS + MOVEMENT_SPEED) == 1:
-                            PlayerInformation['Y'] += (Wall.y_left + Wall.y - PlayerInformation['Y'] - RADIUS) / 2
+                        if Wall.collision(PlayerInformation['X'] + Radius,
+                                          PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
+                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                    'X'] - Radius - 1) / 2
                         else:
-                            PlayerInformation['Y'] += MOVEMENT_SPEED
+                            PlayerInformation['Y'] += MovementSpeed
             else:
-                PlayerInformation['Y'] = SCREEN_HEIGHT - RADIUS
-        elif get_information(information, 4, 1):
-            if PlayerInformation['Y'] - MOVEMENT_SPEED >= RADIUS:
+                PlayerInformation['Y'] = ScreenHeight - Radius
+        elif GetInformation(information, 4, 1):
+            if PlayerInformation['Y'] - MovementSpeed >= Radius:
                 Wall = Walls[PlayerTile[1] - 1][PlayerTile[0]]
                 CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'], PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
-                    PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                if Wall.collision(PlayerInformation['X'],
+                                  PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
+                    PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                 else:
                     Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
-                    if Wall.collision(PlayerInformation['X'] - RADIUS,
-                                      PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
-                        PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                    if Wall.collision(PlayerInformation['X'] - Radius,
+                                      PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
+                        PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RADIUS + 1) / 2
+                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
                     else:
                         Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + RADIUS,
-                                          PlayerInformation['Y'] - RADIUS - MOVEMENT_SPEED) == 1:
-                            PlayerInformation['Y'] += (Wall.y_right + Wall.y - PlayerInformation['Y'] + RADIUS) / 2
+                        if Wall.collision(PlayerInformation['X'] + Radius,
+                                          PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                             if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RADIUS - 1) / 2
+                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                    'X'] - Radius - 1) / 2
                         else:
-                            PlayerInformation['Y'] += -MOVEMENT_SPEED
+                            PlayerInformation['Y'] += -MovementSpeed
             else:
-                PlayerInformation['Y'] = RADIUS
+                PlayerInformation['Y'] = Radius
     return PlayerInformation
 
+
 def main():
+    # Map config
+    Walls = TileMap.ReadJson('Sprites/test_map_1')
+    TileScale = TileMap.GetTileScale('Sprites/test_map_1')
+
+    # HOST CONFIG
+    HOST = socket.gethostbyname(socket.gethostname())
+    PORT = 5000
+    print(HOST, PORT)
+
     # Socket Config
-    ServerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ServerSock.bind((HOST, PORT))
-    ServerSock.listen()
+    ServerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
+    ServerSock.bind((HOST, PORT))  # Bind of socket
+    ServerSock.listen()  # Open socket
 
     # Clients Config
-    Clients = {}
+    Clients = {}  # Create List
 
-    # Player One Config
-    PlayerOnePositionX = 20
-    PlayerOnePositionY = 20
-    PlayerOneColor = "007CAD"
+    # PlayerOne Config
+    #   Create PlayerOne X, Y, Color config
+    PlayerOnePositionX = 20  # PlayerOne X Position
+    PlayerOnePositionY = 20  # PlayerOne Y Position
+    PlayerOneColor = "007CAD"  # PlayerOne Sprite
+    #   Create PlayerOne List
     PlayerOneInformation = {
         'X': PlayerOnePositionX,
         'Y': PlayerOnePositionY,
         'COLOR': PlayerOneColor
     }
 
-    '''
-    # Player Two Config
-    PlayerTwoPositionX = 100
-    PlayerTwoPositionY = 50
-    PlayerTwoColor = "EB5284"
-
-    PlayerTwoInformation = {
-        'X': PlayerTwoPositionX,
-        'Y': PlayerTwoPositionY,
-        'COLOR': PlayerTwoColor
-    }
-    '''
-
-    # Config
+    # All Player Config
     Players = {
         'Player1': PlayerOneInformation,
-        # 'Player2': PlayerTwoInformation
     }
 
-    Client, Address = ServerSock.accept()
+    # Connection to Client
+    #    First Client
+    Client, Address = ServerSock.accept()  # Accept connection
+    Clients['Player1'] = [Client, Address]  # Accept data of Client
+    print("Connected to", {Clients['Player1'][0]})  # Printing for me
+    Server.DynamicSend(Clients['Player1'][0], 'Player1'.encode('utf-8'))  # Send name of Client
+    Server.DynamicSend(Clients['Player1'][0], pickle.dumps(Players))  # Send X and Y
 
-    Clients['Player1'] = [Client, Address]
-    print("Connected to", {Clients['Player1'][0]})
+    # Start working
+    while True:
+        Data = {}  # Creation of data list
 
-    # Client, Address = ServerSock.accept()
-
-    # Clients['Player2'] = [Client, Address]
-    # print("Connected to", {Clients['Player2'][0]})
-
-    DinamicSend(Clients['Player1'][0], 'Player1'.encode('utf-8'))
-    # DinamicSend(Clients['Player1'][0], 'Player2'.encode('utf-8'))
-
-    # DinamicSend(Clients['Player2'][0], 'Player2'.encode('utf-8'))
-    # DinamicSend(Clients['Player2'][0], 'Player1'.encode('utf-8'))
-
-    DinamicSend(Clients['Player1'][0], pickle.dumps(Players))
-    # DinamicSend(Clients['Player2'][0], pickle.dumps(Players))
-
-
-    Connection = True
-    while Connection:
+        # Trying to recv PlayerOne action
         try:
-            Data = DinamicReciev(Clients['Player1'][0])
+            Data = Server.DynamicRecv(Clients['Player1'][0])  # Recv
         except ConnectionError:
-            print("Connection has been resolved")
-            Connection = False
-            break
+            print("Connection Error")  # Say of Error
 
+        # Trying to read action
         try:
-            if int(Data):
-                Information = int(Data)
-                if Information == 192:
-                    Information = 0
-                elif Information == 48:
-                    Information = 0
-                PlayerOneInformation = edit_position(Information, PlayerOneInformation)
+            # If we have action
+            if Data != None:
+                # If action is normal
+                if int(Data):
+                    Information = int(Data)  # Read action
+                    # If action is not right
+                    if Information == 192:
+                        Information = 0
+                    elif Information == 48:
+                        Information = 0
+                    PlayerOneInformation = EditPosition(Information,
+                                                        PlayerOneInformation,
+                                                        Walls,
+                                                        TileScale)  # Making new position
         except:
             print("Data has benn broken")
 
-        '''
-        try:
-            Data = DinamicReciev(Clients['Player2'][0])
-        except ConnectionError:
-            print("Connection has been resolved")
-            Connection = False
-            break
-
-        try:
-            if int(Data):
-                Information = int(Data)
-                if Information == 192:
-                    Information = 0
-                elif Information == 48:
-                    Information = 0
-                PlayerTwoInformation = edit_position(Information, PlayerTwoInformation)
-        except:
-            print("Data has benn broken")
-        '''
-
-        DinamicSend(Clients['Player1'][0], pickle.dumps(Players))
-        # DinamicSend(Clients['Player2'][0], pickle.dumps(Players))
+        # If we can send without problem
+        if Server.DynamicSend(Clients['Player1'][0], pickle.dumps(Players)) != 0:
+            try:
+                Clients['Player1'] = Server.Accept(ServerSock,
+                                                   Players,
+                                                   'Player1')  # Try to create new connection
+            except:
+                print("Bad")
 
 
 main()

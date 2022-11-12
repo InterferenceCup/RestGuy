@@ -2,59 +2,14 @@ import sys
 import socket
 import arcade
 import pickle
+import ServerFunctions as Client
 
 TILE_SCALING = 0.625
-GRID_PIXEL_SIZE = 64
 
 DEFAULT_SCREEN_WIDTH = 640
 DEFAULT_SCREEN_HEIGHT = 640
 SCREEN_TITLE = "Tiles"
 
-def DinamicSend(sock, senddata):
-    Connection = True
-    # print("IN SEND")
-    while Connection:
-        # print("send data")
-        sock.send(senddata)
-        # print("wait size")
-        packet = sock.recv(1024)
-        # print("size get")
-        if int(str(packet.decode('utf-8'))) == sys.getsizeof(senddata):
-            # print("right size")
-            sock.send("YES".encode('utf-8'))
-            Connection = False
-        else:
-            # print("bad size")
-            sock.send("NO".encode('utf-8'))
-    # print("OUT SEND")
-
-def DinamicReciev(sock):
-    data = bytearray()
-    Connection = True
-    # print("IN")
-    while Connection:
-        # First Get
-        # print("wait data")
-        packet = sock.recv(1024)
-        # print(str(packet.decode('utf-8')))
-        data = packet
-
-        # print("data get")
-
-        # Second Get
-        # print("send size")
-        sock.send(str(sys.getsizeof(data)).encode('utf-8'))
-        # print("wait accept")
-        packet = sock.recv(1024)
-        # print(str(packet.decode('utf-8')))
-        # print("get accept")
-        if str(packet.decode('utf-8')) == "YES":
-            # print("data is ok")
-            Connection = False
-        # else:
-            # print("data is not ok")
-    # print("OUT")
-    return data
 
 SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
@@ -70,13 +25,14 @@ Connection = True
 while Connection:
     try:
         ClientSock.connect((HOST, PORT))
+        print("Ok")
         Connection = False
     except ConnectionError:
         print("Trying to connect to server")
         Connection = True
 
 # PlayerNumber = ClientSock.recv(1024).decode('utf-8', errors='ignore')
-PlayerNumber = DinamicReciev(ClientSock).decode('utf-8')
+PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
 print(PlayerNumber)
 # PlayerAnotherNumber = DinamicReciev(ClientSock).decode('utf-8')
 # print(PlayerAnotherNumber)
@@ -86,8 +42,9 @@ print(PlayerNumber)
 Connection = True
 while Connection:
     try:
-        Data = DinamicReciev(ClientSock)
+        Data = Client.DynamicRecv(ClientSock)
         Data = pickle.loads(Data)
+        print(Data)
         Connection = False
     except ConnectionError:
         print("Waiting another players")
@@ -111,7 +68,6 @@ class Player:
                                   self.pos_y,
                                   self.radius,
                                   self.color)
-
 
     def set_information(self, number_of_bit, change):
         if change == 1:
@@ -147,6 +103,7 @@ class Player:
         self.pos_x = pos_x
         self.pos_y = pos_y
 
+
 '''
 class OtherPlayer:
 
@@ -167,6 +124,7 @@ class OtherPlayer:
         self.pos_y = pos_y
 '''
 
+
 class TheGame(arcade.Window):
 
     def __init__(self, width, height, title):
@@ -176,7 +134,8 @@ class TheGame(arcade.Window):
         self.set_mouse_visible(False)
         arcade.set_background_color(arcade.color.ASH_GREY)
 
-        self.player = Player(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'], 0, 0, 15, arcade.color_from_hex_string(Data[PlayerNumber]['COLOR']))
+        self.player = Player(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'], 0, 0, 15,
+                             arcade.color_from_hex_string(Data[PlayerNumber]['COLOR']))
 
         self.floor_list = None
         self.wall_list = None
@@ -201,11 +160,16 @@ class TheGame(arcade.Window):
         # self.player2.draw()
 
     def update(self, delta_time):
-        DinamicSend(ClientSock, str(self.player.player_information).encode())
+        if Client.DynamicSend(ClientSock, str(self.player.player_information).encode()) != 0:
+            print("Bad")
 
-        Data = pickle.loads(DinamicReciev(ClientSock))
+        try:
+            Data = pickle.loads(Client.DynamicRecv(ClientSock))
+        except:
+            Data = None
         # print(Data)
-        self.player.set_position(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'])
+        if Data != None:
+            self.player.set_position(Data[PlayerNumber]['X'], Data[PlayerNumber]['Y'])
         # self.player2.set_position(Data[PlayerAnotherNumber]['X'], Data[PlayerAnotherNumber]['Y'])
 
     def on_key_press(self, key, modifiers):
@@ -233,5 +197,6 @@ def main():
     window = TheGame(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, SCREEN_TITLE)
     window.setup()
     arcade.run()
+
 
 main()
