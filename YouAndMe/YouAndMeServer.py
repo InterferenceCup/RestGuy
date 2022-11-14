@@ -32,7 +32,7 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
     ScreenWidth = Config[1]
     ScreenHeight = Config[0]
     Radius = 15
-    MovementSpeed = 5
+    MovementSpeed = 7
 
     if information == 0:
         PlayerInformation['X'] += 0

@@ -37,9 +37,12 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
     if information == 0:
         PlayerInformation['X'] += 0
         PlayerInformation['Y'] += 0
+        PlayerInformation['ACTION'] = 'Static'
     else:
         PlayerTile = TileMap.GetTile(PlayerInformation['X'], PlayerInformation['Y'], TileScale)
         if GetInformation(information, 7, 1):
+            PlayerInformation['SPRITE'] = 'Left'
+            PlayerInformation['ACTION'] = ''
             if PlayerInformation['X'] - MovementSpeed >= Radius:
                 Wall = Walls[PlayerTile[1]][PlayerTile[0] - 1]
                 CenterWall = Wall.center
@@ -67,6 +70,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
             else:
                 PlayerInformation['X'] = Radius
         elif GetInformation(information, 6, 1):
+            PlayerInformation['SPRITE'] = 'Right'
+            PlayerInformation['ACTION'] = ''
             if PlayerInformation['X'] + MovementSpeed <= ScreenWidth - Radius:
                 Wall = Walls[PlayerTile[1]][PlayerTile[0] + 1]
                 CenterWall = Wall.center
@@ -94,6 +99,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
             else:
                 PlayerInformation['X'] = ScreenWidth - Radius
         if GetInformation(information, 5, 1):
+            PlayerInformation['SPRITE'] = 'Up'
+            PlayerInformation['ACTION'] = ''
             if PlayerInformation['Y'] + MovementSpeed <= ScreenHeight - Radius:
                 Wall = Walls[PlayerTile[1] + 1][PlayerTile[0]]
                 CenterWall = Wall.center
@@ -121,6 +128,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
             else:
                 PlayerInformation['Y'] = ScreenHeight - Radius
         elif GetInformation(information, 4, 1):
+            PlayerInformation['SPRITE'] = 'Down'
+            PlayerInformation['ACTION'] = ''
             if PlayerInformation['Y'] - MovementSpeed >= Radius:
                 Wall = Walls[PlayerTile[1] - 1][PlayerTile[0]]
                 CenterWall = Wall.center
@@ -177,7 +186,8 @@ def main():
     PlayerOneInformation = {
         'X': PlayerOnePositionX,
         'Y': PlayerOnePositionY,
-        'COLOR': PlayerOneColor
+        'SPRITE': 'Down',
+        'ACTION': 'Static'
     }
 
     # All Player Config
@@ -197,7 +207,7 @@ def main():
     # Start working
     while True:
         Data = {}  # Creation of data list
-
+        PlayerOneInformation['ACTION'] = 'Static'
         # Trying to recv PlayerOne action
         try:
             Data = Server.DynamicRecv(Clients['Player1'][0])  # Recv

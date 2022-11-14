@@ -13,22 +13,22 @@ class Player:
                  change_x,
                  change_y,
                  radius,
-                 color,
                  number):
+        self.sprite = None
+        self.player_sprite = {}
+        self.last = ''
+        self.action = ''
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.change_x = change_x
         self.change_y = change_y
         self.radius = radius
-        self.color = color
         self.player_information = 0
         self.number = number
 
     def draw(self):
-        arcade.draw_circle_filled(self.pos_x,
-                                  self.pos_y,
-                                  self.radius,
-                                  self.color)
+        self.sprite.set_position(self.pos_x, self.pos_y)
+        self.sprite.draw()
 
     def set_information(self, number_of_bit, change):
         if change == 1:
@@ -64,6 +64,12 @@ class Player:
         self.pos_x = pos_x
         self.pos_y = pos_y
 
+    def get_sprite(self):
+        self.sprite = self.player_sprite[self.last + self.action]
+
+    def set_sprite(self, last, action):
+        self.last = last
+        self.action = action
 
 class TheGame(arcade.Window):
 
@@ -84,12 +90,25 @@ class TheGame(arcade.Window):
                              0,
                              0,
                              15,
-                             arcade.color_from_hex_string(data[playernumber]['COLOR']),
                              playernumber)
         self.floor_list = None
         self.wall_list = None
         self.tile_map = None
         self.sock = sock
+        self.player.player_sprite = {
+            'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
+            'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
+            'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
+            'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
+            'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
+            'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
+            'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
+            'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+        }
+        for sprite in self.player.player_sprite:
+            self.player.player_sprite[sprite].scale = 2
+        self.player.set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
+        self.player.get_sprite()
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -101,6 +120,22 @@ class TheGame(arcade.Window):
         self.floor_list = self.tile_map.sprite_lists["Base"]
         self.wall_list = self.tile_map.sprite_lists["Walls"]
 
+        '''# Player Set Up
+        self.player.player_sprite = {
+            'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
+            'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
+            'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
+            'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
+            'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
+            'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
+            'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
+            'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+        }
+        print(self.player.player_sprite)
+        self.player.last = 'Up'
+        self.player.action = 'Static'
+        self.player.get_sprite()'''
+
     def on_draw(self):
         arcade.start_render()
 
@@ -109,6 +144,9 @@ class TheGame(arcade.Window):
         self.player.draw()
 
     def update(self, delta_time):
+        if self.player.action != 'Static':
+            self.player.sprite.update_animation()
+
         if Client.DynamicSend(self.sock, str(self.player.player_information).encode()) != 0:
             print("Bad")
 
@@ -119,6 +157,11 @@ class TheGame(arcade.Window):
 
         if Data != None:
             self.player.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
+            self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
+        else:
+            self.player.set_sprite(self.player.last, '')
+        self.player.get_sprite()
+
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
