@@ -143,6 +143,7 @@ def UpdateName(Base, Username, NewUsername):
         try:
             Cursor.execute("UPDATE 'Users' SET username = '"
                            + NewUsername + "' WHERE username = '" + Username + "'")
+            ChangeUserInRating(Base, Username, NewUsername)
             Base.commit()
             return 0
         except:
@@ -181,21 +182,20 @@ def FindRatingByName(Base, Map, Username):
 def AddRating(Base, Map, Rating, Username):
     Cursor = CreateCursor(Base)
     if Cursor != -2:
-        try:
-            if not FindRatingByName(Base, Map, Username):
-                values = (Map, Rating, Username)
-                Cursor.execute("""
-                                 INSERT INTO
-                                 'UsersRating' (map, rating, username) 
-                                 VALUES (?, ?, ?)
-                                 """,
-                               values)
-                Base.commit()
-                return 0
+        if not FindRatingByName(Base, Map, Username):
+            values = (Map, Rating, Username)
+            Cursor.execute("""
+                                     INSERT INTO
+                                     'UsersRating' (map, rating, username) 
+                                     VALUES (?, ?, ?)
+                                     """,
+                           values)
+            if not FindReview(Base, Map):
+                AddReview(Base, Map, Rating)
             else:
-                return -7
-        except:
-            return -5
+                UpdateRating(Base, Map, Rating)
+            Base.commit()
+            return 0
     else:
         return -2
 
@@ -204,6 +204,12 @@ def ChangeRating(Base, Map, Rating, Username):
     Cursor = CreateCursor(Base)
     if Cursor != -2:
         try:
+            Rat = int(GetRatingByUser(Base, Username)[0][1])
+            DeUpdateRating(Base, Map, Rat)
+            if not FindReview(Base, Map):
+                AddReview(Base, Map, Rating)
+            else:
+                UpdateRating(Base, Map, Rating)
             Cursor.execute("UPDATE 'UsersRating' SET rating = "
                            + str(Rating)
                            + " WHERE map = '" + Map + "' AND username = '" + Username + "'")
@@ -216,10 +222,11 @@ def ChangeRating(Base, Map, Rating, Username):
 
 
 def DeleteRatingByMap(Base, Map):
-    Cursor = CreateCursor(Base)
-    if Cursor != -2:
+    CursorDelete = CreateCursor(Base)
+    if CursorDelete != -2:
         try:
-            Cursor.execute("DELETE FROM 'UsersRating' WHERE map = '" + Map + "'")
+            CursorDelete.execute("DELETE FROM 'UsersRating' WHERE map = '" + Map + "'")
+            print(DeleteRating(Base, Map))
             Base.commit()
             return 0
         except:
@@ -229,10 +236,18 @@ def DeleteRatingByMap(Base, Map):
 
 
 def DeleteRatingByUser(Base, Username):
-    Cursor = CreateCursor(Base)
-    if Cursor != -2:
+    CursorFindMaps = CreateCursor(Base)
+    CursorDelete = CreateCursor(Base)
+    if CursorFindMaps != -2 and CursorDelete != -2:
         try:
-            Cursor.execute("DELETE FROM 'UsersRating' WHERE username = '" + Username + "'")
+            CursorFindMaps.execute("SELECT * FROM 'UsersRating' WHERE username = '" + Username + "'")
+            Result = CursorFindMaps.fetchall()
+            print(Result)
+            for result in Result:
+
+                DeUpdateRating(Base, result[0], result[1])
+
+            CursorDelete.execute("DELETE FROM 'UsersRating' WHERE username = '" + Username + "'")
             Base.commit()
             return 0
         except:
@@ -263,7 +278,7 @@ def ChangeUserInRating(Base, Username, NewUsername):
             Base.commit()
             return 0
         except:
-            return -5
+            return -10
     else:
         return -2
 
@@ -305,7 +320,9 @@ def GetRating(Base, Map):
     if Cursor != -2:
         try:
             Cursor.execute("SELECT rating FROM 'MapRating' WHERE map = '" + Map + "'")
-            return Cursor.fetchall()[0][0]
+            Result = Cursor.fetchall()
+            if Result:
+                return Result[0][0]
         except:
             return -6
     else:
@@ -329,11 +346,13 @@ def UpdateRating(Base, Map, Rating):
     if Cursor != -2:
         try:
             Review = GetReview(Base, Map)
-            Rat = GetRating(Base, Map)
+            Rat = int(GetRating(Base, Map))
             Review = Review + 1
-            Rat = (Rat + Rating) / 2
-            Cursor.execute("UPDATE 'MapRating' "
-                           "SET rating = " + str(Rat) + ", review = " + str(Review) +
+            print(Rat)
+            print(Rating)
+            Rat = (Rat + int(Rating)) / 2
+            Cursor.execute("UPDATE 'MapRating' SET rating = "
+                           + str(Rat) + ", review = " + str(Review) +
                            " WHERE map = '" + Map + "'")
             Base.commit()
             return 0
@@ -347,13 +366,16 @@ def DeUpdateRating(Base, Map, Rating):
     Cursor = CreateCursor(Base)
     if Cursor != -2:
         try:
-            Review = GetReview(Base, Map)
-            Rat = GetRating(Base, Map)
+            Review = int(GetReview(Base, Map))
+            Rat = int(GetRating(Base, Map))
             Review = Review - 1
-            Rat = (Rat * (Review + 1) - Rating) / Review
-            Cursor.execute("UPDATE 'MapRating' "
-                           "SET rating = " + str(Rat) + ", review = " + str(Review) +
-                           " WHERE map = '" + Map + "'")
+            if Review != 0:
+                Rat = (Rat * (Review + 1) - int(Rating)) / Review
+                Cursor.execute("UPDATE 'MapRating' "
+                               "SET rating = " + str(Rat) + ", review = " + str(Review) +
+                               " WHERE map = '" + Map + "'")
+            else:
+                DeleteRating(Base, Map)
             Base.commit()
             return 0
         except:
@@ -373,16 +395,15 @@ def DeleteRating(Base, Map):
             return -10
     else:
         return -2
-
-
+'''
 def main():
     Base = Connect("Base")
     if Base != -1:
-        print(DeUpdateRating(Base, 'map1', 4))
-        print(GetAll(Base, 'MapRating'))
+        print(UpdateRating(Base, 'map1'))
         Base.close()
     else:
         print("Base not created")
 
 
 main()
+'''

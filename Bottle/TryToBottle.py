@@ -3,23 +3,22 @@ import DataBaseForRestGuy as Base
 
 # LIST OF FUNCTIONS
 #   LOGINS
-#       1) InsertTableLogins - register
-#       2) CheckPassword - login
-#       3) UpdateStepsAndOrders - update
-#       4) UpdatePassword - change_password
-#       5) UpdateName - name
-#       6) DeleteUser - delete
-#       7) GetAll - see_all_users
+#       1) InsertTableLogins - register                     - added to request
+#       2) CheckPassword - login                            - added to request
+#       3) UpdateStepsAndOrders - update                    - added to request
+#       4) UpdatePassword - change_password                 - added to request
+#       5) UpdateName - name                                - added to request
+#       6) DeleteUser - delete                              - added to request
+#       7) GetAll - see_all_users                           - added to request
 #   RATING BY USER
-#       1) AddRating - add_rating
-#       2) ChangeRating - change_rating
-#       3) DeleteRatingByMap -
-#       4) DeleteRatingByUser -
-#       5) GetRatingByUser - get_rating_by_user
-#       6) ChangeUserInRating - get_rating_by_user
-#       7) GetAll - see_users_rating
+#       1) AddRating - add_rating                           - added to request
+#       2) ChangeRating - change_rating                     - added to request
+#       3) DeleteRatingByMap - delete_rating_by_map         - added to request
+#       4) DeleteRatingByUser - do_delete_rating_by_user    - added to request
+#       5) GetRatingByUser - get_rating_by_user             - added to request
+#       7) GetAll - see_users_rating                        - added to request
 #   RATING
-#       1) GetAll -
+#       1) GetAll - see_maps_rating                         - added to request
 
 
 @get('/login')  # or @route('/login')
@@ -43,7 +42,7 @@ def do_login():
     if type(result) != int:
         return result
     else:
-        return "<p>Login failed.</p>"
+        return "Login failed."
 
 
 @get('/register')  # or @route('/register')
@@ -64,11 +63,11 @@ def do_register():
     password = request.forms.get('password')
     result = Base.InsertTableLogins(Base.Connect('Base'), username, password)
     base.close()
-    if type(result) != int:
+    if result != 0:
         return result
     else:
         if result == -7:
-            return "<p>User with that name has already been.</p>"
+            return "User with that name has already been."
         else:
             return "Strange error"
 
@@ -90,11 +89,11 @@ def do_delete():
     result = Base.DeleteUser(base, username)
     base.close()
     if result == 0:
-        return "<p>Successful delete.</p>"
+        return "Successful delete."
     elif result == -10:
-        return "<p>Update not successfully</p>"
+        return "Update not successfully"
     elif result == -2:
-        return "Cursor not created</p>"
+        return "Cursor not created"
     else:
         return "Strange error"
 
@@ -118,18 +117,19 @@ def do_change_password():
     password = request.forms.get('password')
     newpassword = request.forms.get('newpassword')
     result = Base.CheckPassword(base, username, password)
-    base.close()
     if type(result) != int:
         result = Base.UpdatePassword(base, username, newpassword)
+        base.close()
         if result == 0:
-            return "<p>Successful changes.</p>"
+            return "Successful changes."
         elif result == -10:
-            return "<p>Update not successfully</p>"
+            return "Update not successfully"
         elif result == -2:
-            return "Cursor not created</p>"
+            return "Cursor not created"
         else:
             return "Strange error"
     else:
+        base.close()
         return "Login Failed"
 
 
@@ -155,6 +155,17 @@ def see_users_rating():
     return Users
 
 
+@route('/ratings')
+def see_maps_rating():
+    Maps = ''
+    base = Base.Connect('Base')
+    Result = Base.GetAll(base, 'MapRating')
+    base.close()
+    for maps in Result:
+        Maps = Maps + maps[0] + ' - ' + str(maps[1]) + ' - ' + str(maps[2]) + ' | '
+    return Maps
+
+
 @get('/update')  # or @route('/update')
 def update():
     return '''
@@ -176,11 +187,11 @@ def do_update():
     result = Base.UpdateStepsAndOrders(base, username, steps, orders)
     base.close()
     if result == 0:
-        return "<p>Successful update.</p>"
+        return "Successful update."
     elif result == -10:
-        return "<p>Update not successfully</p>"
+        return "Update not successfully"
     elif result == -2:
-        return "Cursor not created</p>"
+        return "Cursor not created"
     else:
         return "Strange error"
 
@@ -204,11 +215,11 @@ def do_name():
     result = Base.UpdateName(base, username, newusername)
     base.close()
     if result == 0:
-        return "<p>Successful update.</p>"
+        return "Successful update."
     elif result == -10:
-        return "<p>Update not successfully</p>"
+        return "Update not successfully"
     elif result == -2:
-        return "Cursor not created</p>"
+        return "Cursor not created"
     else:
         return "Strange error"
 
@@ -290,4 +301,57 @@ def do_get_rating_by_user():
         return result
 
 
+@get('/ratings/delete/map')  # or @route('/ratings/delete/map')
+def delete_rating_by_map():
+    return '''
+        <form action="/ratings/delete/map" method="post">
+            Map: <input name="map" type="text" />
+            <input value="delete_rating_by_map" type="submit" />
+        </form>
+    '''
+
+
+@post('/ratings/delete/map')  # or @route('/ratings/delete/map', method='POST')
+def do_delete_rating_by_map():
+    base = Base.Connect('Base')
+    maps = request.forms.get('map')
+    result = Base.DeleteRatingByMap(base, maps)
+    base.close()
+    if result == 0:
+        return "Successful delete"
+    elif result == -10:
+        return "Update not successfully"
+    elif result == -2:
+        return "Cursor not created"
+    else:
+        return "Strange error"
+
+
+@get('/ratings/delete/user')  # or @route('/ratings/delete/user')
+def delete_rating_by_user():
+    return '''
+        <form action="/ratings/delete/user" method="post">
+            Username: <input name="username" type="text" />
+            <input value="delete_rating_by_user" type="submit" />
+        </form>
+    '''
+
+
+@post('/ratings/delete/user')  # or @route('/ratings/delete/user', method='POST')
+def do_delete_rating_by_user():
+    base = Base.Connect('Base')
+    username = request.forms.get('username')
+    result = Base.DeleteRatingByUser(base, username)
+    base.close()
+    if result == 0:
+        return "Successful delete."
+    elif result == -10:
+        return "Update not successfully"
+    elif result == -2:
+        return "Cursor not created"
+    else:
+        return "Strange error"
+
+
 run(host='localhost', port=8080)
+# run(host='0.0.0.0', port=8080)
