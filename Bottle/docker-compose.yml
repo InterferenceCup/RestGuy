@@ -1,0 +1,9 @@
+version: '3'
+services:
+  server:
+    build: .
+    container_name: bottle
+    expose:
+      - 8080
+    ports:
+      - "8080:8080"

@@ -354,4 +354,6 @@ def do_delete_rating_by_user():
 
 
 run(host='localhost', port=8080)
+
+# for docker:
 # run(host='0.0.0.0', port=8080)
