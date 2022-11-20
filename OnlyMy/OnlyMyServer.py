@@ -28,9 +28,6 @@ def GetInformation(Information, NumberOfBit, Value):
 # Edit position
 def EditPosition(information, PlayerInformation, Walls, TileScale):
     # Client Config
-    Config = TileMap.GetConfig("Config")
-    ScreenWidth = Config[1]
-    ScreenHeight = Config[0]
     Radius = 15
     MovementSpeed = 5
 
@@ -43,119 +40,139 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
         if GetInformation(information, 7, 1):
             PlayerInformation['SPRITE'] = 'Left'
             PlayerInformation['ACTION'] = ''
-            if PlayerInformation['X'] - MovementSpeed >= Radius:
-                Wall = Walls[PlayerTile[1]][PlayerTile[0] - 1]
-                CenterWall = Wall.center
+            Wall = Walls[PlayerTile[1]][PlayerTile[0] - 1]
+            CenterWall = Wall.center
+            if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
+                              PlayerInformation['Y']) == 1:
+                PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
+                PlayerInformation['SPRITE'] = 'Left'
+                PlayerInformation['ACTION'] = 'Static'
+            else:
+                Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
                 if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
-                                  PlayerInformation['Y']) == 1:
+                                  PlayerInformation['Y'] + Radius) == 1:
                     PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
+                    if CenterWall == -1:
+                        PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                        PlayerInformation['X'] += -MovementSpeed
+                    else:
+                        PlayerInformation['SPRITE'] = 'Left'
+                        PlayerInformation['ACTION'] = 'Static'
                 else:
-                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
+                    Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
                     if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
-                                      PlayerInformation['Y'] + Radius) == 1:
+                                      PlayerInformation['Y'] - Radius) == 1:
                         PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
                             PlayerInformation['X'] += -MovementSpeed
-                    else:
-                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
-                        if Wall.collision(PlayerInformation['X'] - Radius - MovementSpeed,
-                                          PlayerInformation['Y'] - Radius) == 1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius) / 2
-                            if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
-                                PlayerInformation['X'] += -MovementSpeed
                         else:
-                            PlayerInformation['X'] += -MovementSpeed
-            else:
-                PlayerInformation['X'] = Radius
+                            PlayerInformation['SPRITE'] = 'Left'
+                            PlayerInformation['ACTION'] = 'Static'
+                    else:
+                        PlayerInformation['X'] += -MovementSpeed
         elif GetInformation(information, 6, 1):
             PlayerInformation['SPRITE'] = 'Right'
             PlayerInformation['ACTION'] = ''
-            if PlayerInformation['X'] + MovementSpeed <= ScreenWidth - Radius:
-                Wall = Walls[PlayerTile[1]][PlayerTile[0] + 1]
-                CenterWall = Wall.center
+            Wall = Walls[PlayerTile[1]][PlayerTile[0] + 1]
+            CenterWall = Wall.center
+            if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
+                              PlayerInformation['Y']) == 1:
+                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
+                PlayerInformation['SPRITE'] = 'Right'
+                PlayerInformation['ACTION'] = 'Static'
+            else:
+                Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
                 if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
-                                  PlayerInformation['Y']) == 1:
-                    PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
+                                  PlayerInformation['Y'] + Radius) == 1:
+                    PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
+                    if CenterWall == -1:
+                        PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                        PlayerInformation['X'] += MovementSpeed
+                    else:
+                        PlayerInformation['SPRITE'] = 'Right'
+                        PlayerInformation['ACTION'] = 'Static'
                 else:
-                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
+                    Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
                     if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
-                                      PlayerInformation['Y'] + Radius) == 1:
+                                      PlayerInformation['Y'] - Radius) == 1:
                         PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius - 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
                             PlayerInformation['X'] += MovementSpeed
-                    else:
-                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + Radius + MovementSpeed,
-                                          PlayerInformation['Y'] - Radius) == 1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius) / 2
-                            if CenterWall == -1:
-                                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius + 1) / 2
-                                PlayerInformation['X'] += MovementSpeed
                         else:
-                            PlayerInformation['X'] += MovementSpeed
-            else:
-                PlayerInformation['X'] = ScreenWidth - Radius
+                            PlayerInformation['SPRITE'] = 'Right'
+                            PlayerInformation['ACTION'] = 'Static'
+                    else:
+                        PlayerInformation['X'] += MovementSpeed
         if GetInformation(information, 5, 1):
             PlayerInformation['SPRITE'] = 'Up'
             PlayerInformation['ACTION'] = ''
-            if PlayerInformation['Y'] + MovementSpeed <= ScreenHeight - Radius:
-                Wall = Walls[PlayerTile[1] + 1][PlayerTile[0]]
-                CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'],
+            Wall = Walls[PlayerTile[1] + 1][PlayerTile[0]]
+            CenterWall = Wall.center
+            if Wall.collision(PlayerInformation['X'],
+                              PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
+                PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
+                PlayerInformation['SPRITE'] = 'Up'
+                PlayerInformation['ACTION'] = 'Static'
+            else:
+                Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
+                if Wall.collision(PlayerInformation['X'] - Radius,
                                   PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
                     PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
+                    if CenterWall == -1:
+                        PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                        PlayerInformation['Y'] += MovementSpeed
+                    else:
+                        PlayerInformation['SPRITE'] = 'Up'
+                        PlayerInformation['ACTION'] = 'Static'
                 else:
-                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] - 1]
-                    if Wall.collision(PlayerInformation['X'] - Radius,
+                    Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
+                    if Wall.collision(PlayerInformation['X'] + Radius,
                                       PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
                             PlayerInformation['Y'] += MovementSpeed
-                    else:
-                        Wall = Walls[PlayerTile[1] + 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + Radius,
-                                          PlayerInformation['Y'] + Radius + MovementSpeed) == 1:
-                            PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - Radius) / 2
-                            if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
-                                PlayerInformation['Y'] += MovementSpeed
                         else:
-                            PlayerInformation['Y'] += MovementSpeed
-            else:
-                PlayerInformation['Y'] = ScreenHeight - Radius
+                            PlayerInformation['SPRITE'] = 'Up'
+                            PlayerInformation['ACTION'] = 'Static'
+                    else:
+                        PlayerInformation['Y'] += MovementSpeed
         elif GetInformation(information, 4, 1):
             PlayerInformation['SPRITE'] = 'Down'
             PlayerInformation['ACTION'] = ''
-            if PlayerInformation['Y'] - MovementSpeed >= Radius:
-                Wall = Walls[PlayerTile[1] - 1][PlayerTile[0]]
-                CenterWall = Wall.center
-                if Wall.collision(PlayerInformation['X'],
+            Wall = Walls[PlayerTile[1] - 1][PlayerTile[0]]
+            CenterWall = Wall.center
+            if Wall.collision(PlayerInformation['X'],
+                              PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
+                PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
+                PlayerInformation['SPRITE'] = 'Down'
+                PlayerInformation['ACTION'] = 'Static'
+            else:
+                Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
+                if Wall.collision(PlayerInformation['X'] - Radius,
                                   PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
                     PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
+                    if CenterWall == -1:
+                        PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                        PlayerInformation['Y'] += -MovementSpeed
+                    else:
+                        PlayerInformation['SPRITE'] = 'Down'
+                        PlayerInformation['ACTION'] = 'Static'
                 else:
-                    Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] - 1]
-                    if Wall.collision(PlayerInformation['X'] - Radius,
+                    Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
+                    if Wall.collision(PlayerInformation['X'] + Radius,
                                       PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + Radius + 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
                             PlayerInformation['Y'] += -MovementSpeed
-                    else:
-                        Wall = Walls[PlayerTile[1] - 1][PlayerTile[0] + 1]
-                        if Wall.collision(PlayerInformation['X'] + Radius,
-                                          PlayerInformation['Y'] - Radius - MovementSpeed) == 1:
-                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + Radius) / 2
-                            if CenterWall == -1:
-                                PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - Radius - 1) / 2
-                                PlayerInformation['Y'] += -MovementSpeed
                         else:
-                            PlayerInformation['Y'] += -MovementSpeed
-            else:
-                PlayerInformation['Y'] = Radius
+                            PlayerInformation['SPRITE'] = 'Down'
+                            PlayerInformation['ACTION'] = 'Static'
+                    else:
+                        PlayerInformation['Y'] += -MovementSpeed
     return PlayerInformation
 
 
@@ -179,9 +196,8 @@ def main():
 
     # PlayerOne Config
     #   Create PlayerOne X, Y, Color config
-    PlayerOnePositionX = 20  # PlayerOne X Position
-    PlayerOnePositionY = 20  # PlayerOne Y Position
-    PlayerOneColor = "007CAD"  # PlayerOne Sprite
+    PlayerOnePositionX = 60  # PlayerOne X Position
+    PlayerOnePositionY = 60  # PlayerOne Y Position
     #   Create PlayerOne List
     PlayerOneInformation = {
         'X': PlayerOnePositionX,

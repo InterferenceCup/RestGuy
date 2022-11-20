@@ -24,6 +24,7 @@ class Player:
         self.change_y = change_y
         self.radius = radius
         self.player_information = 0
+        self.player_information_demo = 0
         self.number = number
 
     def draw(self):
@@ -34,11 +35,17 @@ class Player:
         if change == 1:
             mask = 1
             mask = mask << number_of_bit
-            self.player_information = self.player_information | mask
+            self.player_information = mask
+            self.player_information_demo = self.player_information_demo | mask
+            if self.player_information == 0:
+                self.player_information = self.player_information_demo
         else:
             mask = 255
             mask = mask - pow(2, number_of_bit)
             self.player_information = self.player_information & mask
+            self.player_information_demo = self.player_information_demo & mask
+            if self.player_information == 0:
+                self.player_information = self.player_information_demo
 
     def print_information(self):
         print('{0:08b}'.format(self.player_information), sys.getsizeof(self.player_information))
@@ -70,6 +77,7 @@ class Player:
     def set_sprite(self, last, action):
         self.last = last
         self.action = action
+
 
 class TheGame(arcade.Window):
 
@@ -106,9 +114,17 @@ class TheGame(arcade.Window):
             'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
         }
         for sprite in self.player.player_sprite:
-            self.player.player_sprite[sprite].scale = 2
+            self.player.player_sprite[sprite].scale = 1
         self.player.set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
         self.player.get_sprite()
+
+        self.width_map = TileMap.GetBoards("test_map_1")[0]
+        self.height_map = TileMap.GetBoards("test_map_1")[1]
+        self.width = width
+        self.height = height
+        self.camera = arcade.Camera(width, height)
+        self.camera_x = self.player.pos_x
+        self.camera_y = self.player.pos_y
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -120,25 +136,10 @@ class TheGame(arcade.Window):
         self.floor_list = self.tile_map.sprite_lists["Base"]
         self.wall_list = self.tile_map.sprite_lists["Walls"]
 
-        '''# Player Set Up
-        self.player.player_sprite = {
-            'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
-            'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
-            'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
-            'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
-            'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
-            'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
-            'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
-            'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
-        }
-        print(self.player.player_sprite)
-        self.player.last = 'Up'
-        self.player.action = 'Static'
-        self.player.get_sprite()'''
-
     def on_draw(self):
         arcade.start_render()
 
+        self.camera.use()
         self.floor_list.draw()
         self.wall_list.draw()
         self.player.draw()
@@ -156,12 +157,21 @@ class TheGame(arcade.Window):
             Data = None
 
         if Data != None:
+            if not Data[self.player.number]['X'] - self.width / 2 <= 0:
+                if not Data[self.player.number]['X'] + self.width / 2 >= self.width_map:
+                    self.camera_x = Data[self.player.number]['X']
+            if not Data[self.player.number]['Y'] - self.height / 2 <= 0:
+                if not Data[self.player.number]['Y'] + self.height / 2 >= self.height_map:
+                    self.camera_y = Data[self.player.number]['Y']
+            self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
+
             self.player.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
             self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
         else:
             self.player.set_sprite(self.player.last, '')
         self.player.get_sprite()
 
+        # elf.camera.move([self.player.pos_x - self.width / 2, self.player.pos_y - self.height / 2])
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
@@ -206,14 +216,14 @@ def main():
 
     # Listen PlayerNumber
     PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
-    print(PlayerNumber)     # Print it for me
+    print(PlayerNumber)  # Print it for me
 
     # Listen Data for balls
     while True:
         try:
-            Data = Client.DynamicRecv(ClientSock)   # Listen data
-            Data = pickle.loads(Data)   # Process data
-            print(Data)     # Print it for me
+            Data = Client.DynamicRecv(ClientSock)  # Listen data
+            Data = pickle.loads(Data)  # Process data
+            print(Data)  # Print it for me
             break
         except ConnectionError:
             print("Waiting another players")

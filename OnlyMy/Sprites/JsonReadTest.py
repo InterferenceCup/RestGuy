@@ -53,6 +53,12 @@ def GetScale(JsonName):
     return Scale
 
 
+def GetBoards(JsonName):
+    with open('Sprites/' + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+        Data = json.load(TileMapConfig)
+    return [Data["config"]["map_width"], Data["config"]["map_height"]]
+
+
 def ReadJson(JsonName):
     with open(JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
         with open(JsonName + '.json', 'r', encoding='utf-8') as TileMap:
