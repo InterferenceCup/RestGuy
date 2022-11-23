@@ -3,7 +3,7 @@ import socket
 import arcade
 import pickle
 import ServerFunctions as Client
-import Sprites.JsonReadTest as TileMap
+import OnlyMy.JsonReadTest as TileMap
 
 
 class Player:
@@ -87,7 +87,8 @@ class TheGame(arcade.Window):
                  title,
                  data,
                  playernumber,
-                 sock):
+                 sock,
+                 Map):
         super().__init__(width, height, title)
 
         arcade.set_background_color(arcade.color.ASH_GREY)
@@ -100,7 +101,7 @@ class TheGame(arcade.Window):
                              15,
                              playernumber)
         self.floor_list = None
-        self.wall_list = None
+        self.objects = []
         self.tile_map = None
         self.sock = sock
         self.player.player_sprite = {
@@ -117,9 +118,9 @@ class TheGame(arcade.Window):
             self.player.player_sprite[sprite].scale = 1
         self.player.set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
         self.player.get_sprite()
-
-        self.width_map = TileMap.GetBoards("test_map_1")[0]
-        self.height_map = TileMap.GetBoards("test_map_1")[1]
+        self.map = Map
+        self.width_map = TileMap.GetBoards(self.map)[0]
+        self.height_map = TileMap.GetBoards(self.map)[1]
         self.width = width
         self.height = height
         self.camera = arcade.Camera(width, height)
@@ -129,19 +130,20 @@ class TheGame(arcade.Window):
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
 
-        self.wall_list = arcade.SpriteList()
         self.floor_list = arcade.SpriteList()
 
-        self.tile_map = arcade.load_tilemap(Map + '.json', scaling=TileScale)
+        self.tile_map = arcade.load_tilemap("Maps/" + Map + "/" + Map + '.json', scaling=TileScale)
         self.floor_list = self.tile_map.sprite_lists["Base"]
-        self.wall_list = self.tile_map.sprite_lists["Walls"]
+        for layers in TileMap.GetConfigMap(Map)["layers"]:
+            self.objects.append(self.tile_map.sprite_lists[layers])
 
     def on_draw(self):
         arcade.start_render()
 
         self.camera.use()
         self.floor_list.draw()
-        self.wall_list.draw()
+        for i in range(len(self.objects)):
+            self.objects[i].draw()
         self.player.draw()
 
     def update(self, delta_time):
@@ -238,7 +240,8 @@ def main():
                      Window[2],
                      Data,
                      PlayerNumber,
-                     ClientSock)
+                     ClientSock,
+                     Map)
     #   Setup window
     window.setup(Map)
     #   Start game

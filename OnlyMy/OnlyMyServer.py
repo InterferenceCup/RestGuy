@@ -1,6 +1,6 @@
 import socket
 import pickle
-import Sprites.JsonReadTest as TileMap
+import OnlyMy.JsonReadTest as TileMap
 import ServerFunctions as Server
 
 
@@ -28,7 +28,7 @@ def GetInformation(Information, NumberOfBit, Value):
 # Edit position
 def EditPosition(information, PlayerInformation, Walls, TileScale):
     # Client Config
-    Radius = 15
+    Radius = 30
     MovementSpeed = 5
 
     if information == 0:
@@ -178,8 +178,9 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
 
 def main():
     # Map config
-    Walls = TileMap.ReadJson('Sprites/test_map_1')
-    TileScale = TileMap.GetTileScale('Sprites/test_map_1')
+    Map = 'test'
+    Walls = TileMap.ReadJson(Map)
+    TileScale = TileMap.GetTileScale(Map)
 
     # HOST CONFIG
     HOST = socket.gethostbyname(socket.gethostname())
@@ -196,8 +197,8 @@ def main():
 
     # PlayerOne Config
     #   Create PlayerOne X, Y, Color config
-    PlayerOnePositionX = 60  # PlayerOne X Position
-    PlayerOnePositionY = 60  # PlayerOne Y Position
+    PlayerOnePositionX = 96  # PlayerOne X Position
+    PlayerOnePositionY = 96  # PlayerOne Y Position
     #   Create PlayerOne List
     PlayerOneInformation = {
         'X': PlayerOnePositionX,
@@ -218,7 +219,7 @@ def main():
     print("Connected to", {Clients['Player1'][0]})  # Printing for me
     Server.DynamicSend(Clients['Player1'][0], 'Player1'.encode('utf-8'))  # Send name of Client
     Server.DynamicSend(Clients['Player1'][0], pickle.dumps(Players))  # Send X and Y
-    Server.DynamicSend(Clients['Player1'][0], 'Sprites/test_map_1'.encode('utf-8'))
+    Server.DynamicSend(Clients['Player1'][0], Map.encode('utf-8'))
 
     # Start working
     while True:
@@ -255,7 +256,7 @@ def main():
                 Clients['Player1'] = Server.Accept(ServerSock,
                                                    Players,
                                                    'Player1',
-                                                   'Sprites/test_map_1')  # Try to create new connection
+                                                   Map)  # Try to create new connection
             except:
                 print("Bad")
 

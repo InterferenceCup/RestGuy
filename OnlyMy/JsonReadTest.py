@@ -41,27 +41,33 @@ class Object:
 
 
 def GetTileScale(JsonName):
-    with open(JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+    with open("Maps/" + JsonName + "/" + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
         Data = json.load(TileMapConfig)
         TileScale = Data["tile"] * Data["scale"]
     return TileScale
 
 
 def GetScale(JsonName):
-    with open(JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+    with open("Maps/" + JsonName + "/" + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
         Scale = json.load(TileMapConfig)["scale"]
     return Scale
 
 
 def GetBoards(JsonName):
-    with open('Sprites/' + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+    with open("Maps/" + JsonName + "/" + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
         Data = json.load(TileMapConfig)
     return [Data["config"]["map_width"], Data["config"]["map_height"]]
 
 
+def GetConfigMap(JsonName):
+    with open("Maps/" + JsonName + "/" + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+        DataConfig = json.load(TileMapConfig)
+    return DataConfig
+
+
 def ReadJson(JsonName):
-    with open(JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
-        with open(JsonName + '.json', 'r', encoding='utf-8') as TileMap:
+    with open("Maps/" + JsonName + "/" + JsonName + '_config.json', 'r', encoding='utf-8') as TileMapConfig:
+        with open("Maps/" + JsonName + "/" + JsonName + '.json', 'r', encoding='utf-8') as TileMap:
             # Reading .json
             DataConfig = json.load(TileMapConfig)
             DataMap = json.load(TileMap)["layers"]
@@ -89,11 +95,11 @@ def ReadJson(JsonName):
                 for datamap in DataMap:
                     if datamap["name"] == layers:
                         Matrix = datamap["data"]
-                        XRight = DataConfig["config"][layers]["x_right"] * Scale
-                        XLeft = DataConfig["config"][layers]["x_left"] * Scale
-                        YTop = DataConfig["config"][layers]["y_top"] * Scale
-                        YDown = DataConfig["config"][layers]["y_down"] * Scale
-                        Center = DataConfig["config"][layers]["center"] * Scale
+                        XRight = DataConfig["config"][str(layers)]["x_right"] * Scale
+                        XLeft = DataConfig["config"][str(layers)]["x_left"] * Scale
+                        YTop = DataConfig["config"][str(layers)]["y_top"] * Scale
+                        YDown = DataConfig["config"][str(layers)]["y_down"] * Scale
+                        Center = DataConfig["config"][str(layers)]["center"] * Scale
 
                         # Make all tiles
                         for j in range(Height):
