@@ -82,17 +82,8 @@ class TheGame(arcade.Window):
         self.wall_list = arcade.SpriteList()
         self.floor_list = arcade.SpriteList()
 
-<<<<<<< Updated upstream
-        self.player_sprite = arcade.Sprite("Sprites/Square.png", scale = SPRITE_SCALING)
-        self.player_sprite.center_x = 32
-        self.player_sprite.center_y = 32
-        self.player_list.append(self.player_sprite)
-
-        self.tile_map = arcade.load_tilemap("Sprites/test_map_1.json", scaling = TILE_SCALING)
-=======
         self.tile_scale = TileMap.GetScale(_map)
         self.tile_map = arcade.load_tilemap(_map + '.json', scaling=self.tile_scale)
->>>>>>> Stashed changes
         self.floor_list = self.tile_map.sprite_lists["Base"]
         self.wall_list = self.tile_map.sprite_lists["Walls"]
 
@@ -206,32 +197,6 @@ class TheGame(arcade.Window):
             self.player.change_y = -5
 
     def on_key_release(self, key, modifiers):
-<<<<<<< Updated upstream
-        if key == arcade.key.LEFT:
-            self.left_pressed = False
-        if key == arcade.key.RIGHT:
-            self.right_pressed = False
-        if key == arcade.key.UP:
-            self.up_pressed = False
-        if key == arcade.key.DOWN:
-            self.down_pressed = False
-
-    def on_update(self, delta_time):
-        self.player_sprite.change_x = 0
-        self.player_sprite.change_y = 0
-
-        if self.left_pressed and not self.right_pressed:
-            self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
-        elif self.right_pressed and not self.left_pressed:
-            self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
-
-        if self.up_pressed and not self.down_pressed:
-            self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
-        elif self.down_pressed and not self.up_pressed:
-            self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
-
-        self.physics_engine.update()
-=======
         if key == arcade.key.LEFT or key == arcade.key.A:
             if not self.player.change_x == 5:
                 self.player.change_x = 0
@@ -245,7 +210,6 @@ class TheGame(arcade.Window):
             if not self.player.change_y == 5:
                 self.player.change_y = 0
 
->>>>>>> Stashed changes
 
 def main():
     # Window config
