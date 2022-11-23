@@ -35,8 +35,7 @@ class MyGame(arcade.Window):
         self.wall_list = arcade.SpriteList()
         self.floor_list = arcade.SpriteList()
 
-        self.player_sprite = arcade.load_animated_gif('Sprites/AnimationTest.gif')
-        self.player_sprite.scale = 2 * TILE_SCALING
+        self.player_sprite = arcade.Sprite("Sprites/Square.png", scale = SPRITE_SCALING)
         self.player_sprite.center_x = 32
         self.player_sprite.center_y = 32
         self.player_list.append(self.player_sprite)
@@ -77,7 +76,6 @@ class MyGame(arcade.Window):
     def on_update(self, delta_time):
         self.player_sprite.change_x = 0
         self.player_sprite.change_y = 0
-        self.player_sprite.update_animation()
 
         if self.left_pressed and not self.right_pressed:
             self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED

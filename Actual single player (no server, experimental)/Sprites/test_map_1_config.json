@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 { "layers": ["Walls"],
   "scale": 0.675,
   "config": {
@@ -8,5 +9,21 @@
       "x_left": -32,
       "center": 0
     }
+=======
+{
+  "layers": ["Walls"],
+  "scale": 0.625,
+  "tile": 64,
+  "config": {
+      "Walls": {
+        "y_top": 32,
+        "y_down": -32,
+        "x_right": 32,
+        "x_left": -32,
+        "center": 0
+      },
+      "map_width": 800,
+      "map_height": 800
+>>>>>>> origin/Pavel-was-here
   }
 }
