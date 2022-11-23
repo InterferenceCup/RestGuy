@@ -100,6 +100,7 @@ def Splitting(JsonName, Layers):
     Height = Layers[1]["height"]
     Width = Layers[1]["width"]
     NewLayers.append(Layers[0])
+    NewLayers.append(Layers[2])
 
     for tile in Data:
         if tile not in Numbers:

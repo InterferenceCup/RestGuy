@@ -91,7 +91,7 @@ class TheGame(arcade.Window):
                  Map):
         super().__init__(width, height, title)
 
-        arcade.set_background_color(arcade.color.ASH_GREY)
+        arcade.set_background_color(arcade.color.BLACK)
 
         self.set_mouse_visible(False)
         self.player = Player(data[playernumber]['X'],
@@ -100,6 +100,7 @@ class TheGame(arcade.Window):
                              0,
                              15,
                              playernumber)
+        self.decore = None
         self.floor_list = None
         self.objects = []
         self.tile_map = None
@@ -136,6 +137,7 @@ class TheGame(arcade.Window):
         self.floor_list = self.tile_map.sprite_lists["Base"]
         for layers in TileMap.GetConfigMap(Map)["layers"]:
             self.objects.append(self.tile_map.sprite_lists[layers])
+        self.decore = self.tile_map.sprite_lists["Decore"]
 
     def on_draw(self):
         arcade.start_render()
@@ -144,6 +146,7 @@ class TheGame(arcade.Window):
         self.floor_list.draw()
         for i in range(len(self.objects)):
             self.objects[i].draw()
+        self.decore.draw()
         self.player.draw()
 
     def update(self, delta_time):
