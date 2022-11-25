@@ -46,9 +46,9 @@ def ReadAllFile(JsonName):
     return File
 
 
-def PrintFile(JsonName, File, Layers):
+def PrintFile(JsonName, File):
     with open("Maps/" + JsonName + "/" + JsonName + '.json', 'w') as TileMap:
-        File["layers"] = Layers
+        # File["layers"] = Layers
         File["tilesets"][0]["source"] = JsonName + "_tiles.json"
         json.dump(File, TileMap, indent=4)
 
@@ -141,16 +141,20 @@ def CreateConfig(JsonName, Layers):
         }
     }
 
-    for layers in Layers:
-        if layers["name"] != "Base":
-            Config["layers"].append(layers["name"])
-            Config["config"][layers["name"]] = {
-                "y_top": 32,
-                "y_down": -32,
-                "x_right": 32,
-                "x_left": -32,
-                "center": 0
-            }
+    Matrix = Layers[1]["data"]
+    Height = Layers[1]["height"]
+    Width = Layers[1]["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0 and not Matrix[w + h * Width] - 1 in Config["layers"]:
+                Config["layers"].append(Matrix[w + h * Width] - 1)
+                Config["config"][str(Matrix[w + h * Width] - 1)] = {
+                    "y_top": 32,
+                    "y_down": -32,
+                    "x_right": 32,
+                    "x_left": -32,
+                    "center": 0
+                }
 
     PrintFileConfig(JsonName, Config)
 
@@ -163,14 +167,14 @@ def main():
     # FIRST CREATION
     CopyAll(JsonName)
     Layers = ReadLayers(JsonName)
-    NewLayers = Splitting(JsonName, Layers)
+    # NewLayers = Splitting(JsonName, Layers)
     File = ReadAllFile(JsonName)
-    PrintFile(JsonName, File, NewLayers)
+    PrintFile(JsonName, File)
     EditConfig(JsonName)
     # Crop("Maps/" + JsonName + "/Sprite", JsonName, 64, 64)
 
     # SECOND CREATION
-    CreateConfig(JsonName, ReadNewLayers(JsonName))
+    CreateConfig(JsonName, Layers)
 
 
 main()

@@ -1,9 +1,12 @@
+import copy
+import queue
+import random
 import sys
 import socket
 import arcade
 import pickle
 import ServerFunctions as Client
-import Sprites.JsonReadTest as TileMap
+import JsonReadTest as TileMap
 
 
 class Player:
@@ -13,32 +16,39 @@ class Player:
                  change_x,
                  change_y,
                  radius,
-                 color,
                  number):
+        self.sprite = None
+        self.player_sprite = {}
+        self.last = ''
+        self.action = ''
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.change_x = change_x
         self.change_y = change_y
         self.radius = radius
-        self.color = color
         self.player_information = 0
+        self.player_information_demo = 0
         self.number = number
 
     def draw(self):
-        arcade.draw_circle_filled(self.pos_x,
-                                  self.pos_y,
-                                  self.radius,
-                                  self.color)
+        self.sprite.set_position(self.pos_x, self.pos_y)
+        self.sprite.draw()
 
     def set_information(self, number_of_bit, change):
         if change == 1:
             mask = 1
             mask = mask << number_of_bit
-            self.player_information = self.player_information | mask
+            self.player_information = mask
+            self.player_information_demo = self.player_information_demo | mask
+            if self.player_information == 0:
+                self.player_information = self.player_information_demo
         else:
             mask = 255
             mask = mask - pow(2, number_of_bit)
             self.player_information = self.player_information & mask
+            self.player_information_demo = self.player_information_demo & mask
+            if self.player_information == 0:
+                self.player_information = self.player_information_demo
 
     def print_information(self):
         print('{0:08b}'.format(self.player_information), sys.getsizeof(self.player_information))
@@ -64,23 +74,38 @@ class Player:
         self.pos_x = pos_x
         self.pos_y = pos_y
 
+    def get_sprite(self):
+        self.sprite = self.player_sprite[self.last + self.action]
+
+    def set_sprite(self, last, action):
+        self.last = last
+        self.action = action
+
 
 class OtherPlayer:
-    def __init__(self, pos_x, pos_y, radius, color):
+    def __init__(self, pos_x, pos_y, radius):
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.radius = radius
-        self.color = color
+        self.sprite = None
+        self.player_sprite = {}
+        self.last = ''
+        self.action = ''
 
     def draw(self):
-        arcade.draw_circle_filled(self.pos_x,
-                                  self.pos_y,
-                                  self.radius,
-                                  self.color)
+        self.sprite.set_position(self.pos_x, self.pos_y)
+        self.sprite.draw()
 
     def set_position(self, pos_x, pos_y):
         self.pos_x = pos_x
         self.pos_y = pos_y
+
+    def get_sprite(self):
+        self.sprite = self.player_sprite[self.last + self.action]
+
+    def set_sprite(self, last, action):
+        self.last = last
+        self.action = action
 
 
 class TheGame(arcade.Window):
@@ -90,10 +115,11 @@ class TheGame(arcade.Window):
                  title,
                  data,
                  playernumber,
-                 sock):
+                 sock,
+                 Map):
         super().__init__(width, height, title)
 
-        arcade.set_background_color(arcade.color.ASH_GREY)
+        arcade.set_background_color(arcade.color.BLACK)
 
         self.PlayersList = [
             'Player1',
@@ -107,42 +133,122 @@ class TheGame(arcade.Window):
                                      0,
                                      0,
                                      15,
-                                     arcade.color_from_hex_string(data[playernumber]['COLOR']),
                                      playernumber)
             else:
                 self.players[players] = OtherPlayer(data[players]['X'],
                                                     data[players]['Y'],
-                                                    15,
-                                                    arcade.color_from_hex_string(data[players]['COLOR']))
-
+                                                    15)
         self.set_mouse_visible(False)
+        self.decore = None
         self.floor_list = None
-        self.wall_list = None
+        self.objects = None
         self.tile_map = None
         self.sock = sock
+        for players in self.PlayersList:
+            if players == playernumber:
+                self.player.player_sprite = {
+                    'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
+                    'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
+                    'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
+                    'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
+                    'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
+                    'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
+                    'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
+                    'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+                }
+                for sprite in self.player.player_sprite:
+                    self.player.player_sprite[sprite].scale = 1
+                self.player.set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
+                self.player.get_sprite()
+            else:
+                self.players[players].player_sprite = {
+                    'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
+                    'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
+                    'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
+                    'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
+                    'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
+                    'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
+                    'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
+                    'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+                }
+                for sprite in self.players[players].player_sprite:
+                    self.players[players].player_sprite[sprite].scale = 1
+                self.players[players].set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
+                self.players[players].get_sprite()
+                self.map = Map
+                self.width_map = TileMap.GetBoards(self.map)[0]
+                self.height_map = TileMap.GetBoards(self.map)[1]
+                self.width = width
+                self.height = height
+                self.camera = arcade.Camera(width, height)
+                self.camera_x = self.player.pos_x
+                self.camera_y = self.player.pos_y
+                self.BasePath = None
+                self.Path = None
+                self.Target = None  # I need a place to go to, don't I?
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
 
-        self.wall_list = arcade.SpriteList()
         self.floor_list = arcade.SpriteList()
 
-        self.tile_map = arcade.load_tilemap(Map + '.json', scaling=TileScale)
+        self.tile_map = arcade.load_tilemap("Maps/" + Map + "/" + Map + '.json', scaling=TileScale)
         self.floor_list = self.tile_map.sprite_lists["Base"]
-        self.wall_list = self.tile_map.sprite_lists["Walls"]
+        self.objects = self.tile_map.sprite_lists["Objects"]
+        self.decore = self.tile_map.sprite_lists["Decore"]
+
+        self.BasePath = TileMap.GetPath(Map)
+
+        # first target
+        self.Target = [random.randint(1, 28), random.randint(1, 28)]
+        while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+            self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
     def on_draw(self):
         arcade.start_render()
 
+        self.camera.use()
         self.floor_list.draw()
-        self.wall_list.draw()
-        self.player.draw()
+        self.objects.draw()
+        self.decore.draw()
+
+        if self.Target:
+            arcade.draw_circle_filled(
+                (self.Target[0] * 64 + 32),
+                (self.Target[1] * 64 + 32),
+                12,
+                [128, 0, 0]  # that means red (maroon actually)
+            )
+        if self.Path:
+            s = copy.copy(self.Target)
+            while self.Path[s[1]][s[0]] != -1:
+                e = self.Path[s[1]][s[0]]
+                arcade.draw_line(
+                    (s[0] * 64 + 32),
+                    (s[1] * 64 + 32),
+                    (e[1] * 64 + 32),
+                    (e[0] * 64 + 32),
+                    [128, 0, 0],
+                    7
+                )
+                s[0] = e[1]
+                s[1] = e[0]
 
         for players in self.PlayersList:
             if players != self.player.number:
                 self.players[players].draw()
+            else:
+                self.player.draw()
 
     def update(self, delta_time):
+        for players in self.PlayersList:
+            if players == self.player.number:
+                if self.player.action != 'Static':
+                    self.player.sprite.update_animation()
+            else:
+                if self.players[players].action != 'Static':
+                    self.players[players].sprite.update_animation()
+
         if Client.DynamicSend(self.sock, str(self.player.player_information).encode()) != 0:
             print("Bad")
 
@@ -152,11 +258,58 @@ class TheGame(arcade.Window):
             Data = None
 
         if Data != None:
+            if not Data[self.player.number]['X'] - self.width / 2 <= 0:
+                if not Data[self.player.number]['X'] + self.width / 2 >= self.width_map:
+                    self.camera_x = Data[self.player.number]['X']
+            if not Data[self.player.number]['Y'] - self.height / 2 <= 0:
+                if not Data[self.player.number]['Y'] + self.height / 2 >= self.height_map:
+                    self.camera_y = Data[self.player.number]['Y']
+            self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
             for players in self.PlayersList:
                 if players == self.player.number:
                     self.player.set_position(Data[players]['X'], Data[players]['Y'])
+                    self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
                 else:
                     self.players[players].set_position(Data[players]['X'], Data[players]['Y'])
+                    self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
+        else:
+            for players in self.PlayersList:
+                if players == self.player.number:
+                    self.player.set_sprite(self.player.last, '')
+                else:
+                    self.players[players].set_sprite(self.players[players].last, '')
+        for players in self.PlayersList:
+            if players == self.player.number:
+                self.player.get_sprite()
+            else:
+                self.players[players].get_sprite()
+
+                # Setting a Target
+                if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
+                    self.Target = [random.randint(1, 28), random.randint(1, 28)]
+                    while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+                        self.Target = [random.randint(1, 28), random.randint(1, 28)]
+
+                # Pathfinding time!
+                self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
+                v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+                q = queue.Queue()  # BFS main queue
+                q.put(v)
+                self.Path[v[1]][v[0]] = -1
+                while not q.empty():
+                    v = q.get()
+                    if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
+                        q.put([v[0], v[1] - 1])
+                        self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
+                    if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
+                        q.put([v[0] - 1, v[1]])
+                        self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
+                    if self.Path[v[1] + 1][v[0]] == 1:  # UP
+                        q.put([v[0], v[1] + 1])
+                        self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
+                    if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
+                        q.put([v[0] + 1, v[1]])
+                        self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
@@ -223,7 +376,8 @@ def main():
                      Window[2],
                      Data,
                      PlayerNumber,
-                     ClientSock)
+                     ClientSock,
+                     Map)
     #   Setup window
     window.setup(Map)
     #   Start game

@@ -9,6 +9,8 @@
         "x_right": 32,
         "x_left": -32,
         "center": 0
-    }
+      },
+      "map_width": 800,
+      "map_height": 800
   }
 }

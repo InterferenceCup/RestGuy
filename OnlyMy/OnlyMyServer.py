@@ -90,7 +90,7 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                   PlayerInformation['Y'] + RadiusUp) == 1:
                     PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusRight) / 2
                     if CenterWall == -1:
-                        PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - RadiusUp) / 2
+                        PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - RadiusUp - 1) / 2
                         PlayerInformation['X'] += MovementSpeed
                     else:
                         PlayerInformation['SPRITE'] = 'Right'
@@ -200,8 +200,8 @@ def main():
 
     # PlayerOne Config
     #   Create PlayerOne X, Y, Color config
-    PlayerOnePositionX = 320  # PlayerOne X Position
-    PlayerOnePositionY = 896  # PlayerOne Y Position
+    PlayerOnePositionX = 352  # PlayerOne X Position
+    PlayerOnePositionY = 928  # PlayerOne Y Position
     #   Create PlayerOne List
     PlayerOneInformation = {
         'X': PlayerOnePositionX,

@@ -1,3 +1,6 @@
+import copy
+import queue
+import random
 import sys
 import socket
 import arcade
@@ -102,7 +105,7 @@ class TheGame(arcade.Window):
                              playernumber)
         self.decore = None
         self.floor_list = None
-        self.objects = []
+        self.objects = None
         self.tile_map = None
         self.sock = sock
         self.player.player_sprite = {
@@ -127,6 +130,9 @@ class TheGame(arcade.Window):
         self.camera = arcade.Camera(width, height)
         self.camera_x = self.player.pos_x
         self.camera_y = self.player.pos_y
+        self.BasePath = None
+        self.Path = None
+        self.Target = None  # I need a place to go to, don't I?
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -135,18 +141,46 @@ class TheGame(arcade.Window):
 
         self.tile_map = arcade.load_tilemap("Maps/" + Map + "/" + Map + '.json', scaling=TileScale)
         self.floor_list = self.tile_map.sprite_lists["Base"]
-        for layers in TileMap.GetConfigMap(Map)["layers"]:
-            self.objects.append(self.tile_map.sprite_lists[layers])
+        self.objects = self.tile_map.sprite_lists["Objects"]
         self.decore = self.tile_map.sprite_lists["Decore"]
+
+        self.BasePath = TileMap.GetPath(Map)
+
+        # first target
+        self.Target = [random.randint(1, 28), random.randint(1, 28)]
+        while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+            self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
     def on_draw(self):
         arcade.start_render()
 
         self.camera.use()
         self.floor_list.draw()
-        for i in range(len(self.objects)):
-            self.objects[i].draw()
+        self.objects.draw()
         self.decore.draw()
+
+        if self.Target:
+            arcade.draw_circle_filled(
+                (self.Target[0] * 64 + 32),
+                (self.Target[1] * 64 + 32),
+                12,
+                [128, 0, 0]   # that means red (maroon actually)
+            )
+        if self.Path:
+            s = copy.copy(self.Target)
+            while self.Path[s[1]][s[0]] != -1:
+                e = self.Path[s[1]][s[0]]
+                arcade.draw_line(
+                    (s[0] * 64 + 32),
+                    (s[1] * 64 + 32),
+                    (e[1] * 64 + 32),
+                    (e[0] * 64 + 32),
+                    [128, 0, 0],
+                    7
+                )
+                s[0] = e[1]
+                s[1] = e[0]
+
         self.player.draw()
 
     def update(self, delta_time):
@@ -177,6 +211,33 @@ class TheGame(arcade.Window):
         self.player.get_sprite()
 
         # elf.camera.move([self.player.pos_x - self.width / 2, self.player.pos_y - self.height / 2])
+
+        # Setting a Target
+        if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
+            self.Target = [random.randint(1, 28), random.randint(1, 28)]
+            while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+                self.Target = [random.randint(1, 28), random.randint(1, 28)]
+
+        # Pathfinding time!
+        self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
+        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+        q = queue.Queue()  # BFS main queue
+        q.put(v)
+        self.Path[v[1]][v[0]] = -1
+        while not q.empty():
+            v = q.get()
+            if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
+                q.put([v[0], v[1] - 1])
+                self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
+            if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
+                q.put([v[0] - 1, v[1]])
+                self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
+            if self.Path[v[1] + 1][v[0]] == 1:  # UP
+                q.put([v[0], v[1] + 1])
+                self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
+            if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
+                q.put([v[0] + 1, v[1]])
+                self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
