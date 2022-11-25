@@ -70,6 +70,12 @@ class Player:
             else:
                 return 1
 
+    def plus_information(self, number_of_bit, change):
+        if change == 1:
+            mask = 1
+            mask = mask << number_of_bit
+            self.player_information += mask
+
     def set_position(self, pos_x, pos_y):
         self.pos_x = pos_x
         self.pos_y = pos_y
@@ -108,6 +114,49 @@ class OtherPlayer:
         self.action = action
 
 
+class Camera:
+
+    def __init__(self, height, width, height_map, width_map):
+        self.height = height
+        self.width = width
+        self.camera = arcade.Camera(width, height)
+        self.camera_x = self.height / 2
+        self.camera_y = self.width / 2
+        self.height_map = height_map
+        self.width_map = width_map
+        self.players = []
+        self.score = {}
+
+    def set_position(self, x, y):
+        if not x - self.width / 2 <= 0:
+            if not x + self.width / 2 >= self.width_map:
+                self.camera_x = x
+        if not y - self.height / 2 <= 0:
+            if not y >= self.height_map:
+                self.camera_y = y
+        self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
+
+    def draw(self):
+        self.camera.use()
+        delta = 20
+        for players in self.players:
+            arcade.draw_text(players + ": " + str(self.score[players]),
+                             self.camera_x - self.width / 2 + 5,
+                             self.camera_y + self.height / 2 - delta,
+                             arcade.color.WHITE,
+                             font_size=14,
+                             font_name="Kenney Blocks")
+            delta += 20
+
+    def set_score(self, player, score):
+        if player not in self.players:
+            self.players.append(player)
+        self.score[player] = score
+
+    def plus_score(self, player, score):
+        self.score[player] += score
+
+
 class TheGame(arcade.Window):
     def __init__(self,
                  width,
@@ -144,17 +193,20 @@ class TheGame(arcade.Window):
         self.objects = None
         self.tile_map = None
         self.sock = sock
+        self.map = Map
+        self.camera = Camera(height, width, TileMap.GetBoards(self.map)[1], TileMap.GetBoards(self.map)[0])
         for players in self.PlayersList:
+            path = 'PlayersSprites/' + players + '/Animations/'
             if players == playernumber:
                 self.player.player_sprite = {
-                    'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
-                    'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
-                    'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
-                    'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
-                    'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
-                    'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
-                    'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
-                    'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+                    'Up': arcade.load_animated_gif(path + 'Up.gif'),
+                    'Down': arcade.load_animated_gif(path + 'Down.gif'),
+                    'Left': arcade.load_animated_gif(path + 'Left.gif'),
+                    'Right': arcade.load_animated_gif(path + 'Right.gif'),
+                    'UpStatic': arcade.Sprite(path + 'Up.png'),
+                    'DownStatic': arcade.Sprite(path + 'Down.png'),
+                    'LeftStatic': arcade.Sprite(path + 'Left.png'),
+                    'RightStatic': arcade.Sprite(path + 'Right.png')
                 }
                 for sprite in self.player.player_sprite:
                     self.player.player_sprite[sprite].scale = 1
@@ -162,30 +214,23 @@ class TheGame(arcade.Window):
                 self.player.get_sprite()
             else:
                 self.players[players].player_sprite = {
-                    'Up': arcade.load_animated_gif('PlayersSprite/Up.gif'),
-                    'Down': arcade.load_animated_gif('PlayersSprite/Down.gif'),
-                    'Left': arcade.load_animated_gif('PlayersSprite/Left.gif'),
-                    'Right': arcade.load_animated_gif('PlayersSprite/Right.gif'),
-                    'UpStatic': arcade.Sprite('PlayersSprite/Up.png'),
-                    'DownStatic': arcade.Sprite('PlayersSprite/Down.png'),
-                    'LeftStatic': arcade.Sprite('PlayersSprite/Left.png'),
-                    'RightStatic': arcade.Sprite('PlayersSprite/Right.png')
+                    'Up': arcade.load_animated_gif(path + 'Up.gif'),
+                    'Down': arcade.load_animated_gif(path + 'Down.gif'),
+                    'Left': arcade.load_animated_gif(path + 'Left.gif'),
+                    'Right': arcade.load_animated_gif(path + 'Right.gif'),
+                    'UpStatic': arcade.Sprite(path + 'Up.png'),
+                    'DownStatic': arcade.Sprite(path + 'Down.png'),
+                    'LeftStatic': arcade.Sprite(path + 'Left.png'),
+                    'RightStatic': arcade.Sprite(path + 'Right.png')
                 }
                 for sprite in self.players[players].player_sprite:
                     self.players[players].player_sprite[sprite].scale = 1
                 self.players[players].set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
                 self.players[players].get_sprite()
-                self.map = Map
-                self.width_map = TileMap.GetBoards(self.map)[0]
-                self.height_map = TileMap.GetBoards(self.map)[1]
-                self.width = width
-                self.height = height
-                self.camera = arcade.Camera(width, height)
-                self.camera_x = self.player.pos_x
-                self.camera_y = self.player.pos_y
-                self.BasePath = None
-                self.Path = None
-                self.Target = None  # I need a place to go to, don't I?
+            self.camera.set_score(players, 0)
+        self.BasePath = None
+        self.Path = None
+        self.Target = None  # I need a place to go to, don't I?
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -204,10 +249,11 @@ class TheGame(arcade.Window):
         while self.BasePath[self.Target[1]][self.Target[0]] == -1:
             self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
+        self.camera.set_position(self.player.pos_x, self.player.pos_y)
+
     def on_draw(self):
         arcade.start_render()
 
-        self.camera.use()
         self.floor_list.draw()
         self.objects.draw()
         self.decore.draw()
@@ -240,6 +286,26 @@ class TheGame(arcade.Window):
             else:
                 self.player.draw()
 
+        for players in self.PlayersList:
+            if players == self.player.number:
+                arcade.draw_text(self.player.number,
+                                 self.player.pos_x + 2,
+                                 self.player.pos_y + 38,
+                                 arcade.color.WHITE,
+                                 font_size=14,
+                                 font_name="Kenney Blocks",
+                                 anchor_x='center')
+            else:
+                arcade.draw_text(players,
+                                 self.players[players].pos_x + 2,
+                                 self.players[players].pos_y + 38,
+                                 arcade.color.WHITE,
+                                 font_size=14,
+                                 font_name="Kenney Blocks",
+                                 anchor_x='center')
+
+        self.camera.draw()
+
     def update(self, delta_time):
         for players in self.PlayersList:
             if players == self.player.number:
@@ -258,58 +324,57 @@ class TheGame(arcade.Window):
             Data = None
 
         if Data != None:
-            if not Data[self.player.number]['X'] - self.width / 2 <= 0:
-                if not Data[self.player.number]['X'] + self.width / 2 >= self.width_map:
-                    self.camera_x = Data[self.player.number]['X']
-            if not Data[self.player.number]['Y'] - self.height / 2 <= 0:
-                if not Data[self.player.number]['Y'] + self.height / 2 >= self.height_map:
-                    self.camera_y = Data[self.player.number]['Y']
-            self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
+            self.camera.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
             for players in self.PlayersList:
                 if players == self.player.number:
                     self.player.set_position(Data[players]['X'], Data[players]['Y'])
                     self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
+                    self.camera.set_score(players, Data[self.player.number]['SCORE'])
                 else:
                     self.players[players].set_position(Data[players]['X'], Data[players]['Y'])
                     self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
+                    self.camera.set_score(players, Data[players]['SCORE'])
         else:
             for players in self.PlayersList:
                 if players == self.player.number:
                     self.player.set_sprite(self.player.last, '')
                 else:
                     self.players[players].set_sprite(self.players[players].last, '')
+
         for players in self.PlayersList:
             if players == self.player.number:
                 self.player.get_sprite()
+                self.player.set_information(0, 0)
             else:
                 self.players[players].get_sprite()
 
-                # Setting a Target
-                if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
-                    self.Target = [random.randint(1, 28), random.randint(1, 28)]
-                    while self.BasePath[self.Target[1]][self.Target[0]] == -1:
-                        self.Target = [random.randint(1, 28), random.randint(1, 28)]
+        # Setting a Target
+        if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
+            self.player.plus_information(0, 1)
+            self.Target = [random.randint(1, 28), random.randint(1, 28)]
+            while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+                self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
-                # Pathfinding time!
-                self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
-                v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
-                q = queue.Queue()  # BFS main queue
-                q.put(v)
-                self.Path[v[1]][v[0]] = -1
-                while not q.empty():
-                    v = q.get()
-                    if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
-                        q.put([v[0], v[1] - 1])
-                        self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
-                    if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
-                        q.put([v[0] - 1, v[1]])
-                        self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
-                    if self.Path[v[1] + 1][v[0]] == 1:  # UP
-                        q.put([v[0], v[1] + 1])
-                        self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
-                    if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
-                        q.put([v[0] + 1, v[1]])
-                        self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
+        # Pathfinding time!
+        self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
+        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+        q = queue.Queue()  # BFS main queue
+        q.put(v)
+        self.Path[v[1]][v[0]] = -1
+        while not q.empty():
+            v = q.get()
+            if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
+                q.put([v[0], v[1] - 1])
+                self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
+            if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
+                q.put([v[0] - 1, v[1]])
+                self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
+            if self.Path[v[1] + 1][v[0]] == 1:  # UP
+                q.put([v[0], v[1] + 1])
+                self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
+            if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
+                q.put([v[0] + 1, v[1]])
+                self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:

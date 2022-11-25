@@ -207,7 +207,8 @@ def main():
         'X': PlayerOnePositionX,
         'Y': PlayerOnePositionY,
         'SPRITE': 'Down',
-        'ACTION': 'Static'
+        'ACTION': 'Static',
+        'SCORE': 0
     }
 
     # PlayerTwo Config
@@ -219,7 +220,8 @@ def main():
         'X': PlayerTwoPositionX,
         'Y': PlayerTwoPositionY,
         'SPRITE': 'Down',
-        'ACTION': 'Static'
+        'ACTION': 'Static',
+        'SCORE': 0
     }
 
     # All Player Config
@@ -244,7 +246,6 @@ def main():
     # Start working
     while True:
         Data = {}  # Creation of data list
-        PlayerOneInformation['ACTION'] = 'Static'
         for player in PlayersList:
             Players[player]['ACTION'] = 'Static'
             ServerSock.settimeout(0.01)
@@ -261,6 +262,9 @@ def main():
                     # If action is normal
                     if int(Data):
                         Information = int(Data)  # Read action
+                        if GetInformation(Information, 0, 1):
+                            Players[player]['SCORE'] += 1
+                            Information -= 1
                         # If action is not right
                         if Information == 192:
                             Information = 0

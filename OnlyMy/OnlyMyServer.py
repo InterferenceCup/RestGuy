@@ -207,7 +207,8 @@ def main():
         'X': PlayerOnePositionX,
         'Y': PlayerOnePositionY,
         'SPRITE': 'Down',
-        'ACTION': 'Static'
+        'ACTION': 'Static',
+        'SCORE': 0
     }
 
     # All Player Config
@@ -241,6 +242,9 @@ def main():
                 # If action is normal
                 if int(Data):
                     Information = int(Data)  # Read action
+                    if GetInformation(Information, 0, 1):
+                        PlayerOneInformation['SCORE'] += 1
+                        Information -= 1
                     # If action is not right
                     if Information == 192:
                         Information = 0
