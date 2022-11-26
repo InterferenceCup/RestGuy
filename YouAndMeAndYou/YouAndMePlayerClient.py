@@ -172,7 +172,8 @@ class TheGame(arcade.Window):
 
         self.PlayersList = [
             'Player1',
-            'Player2'
+            'Player2',
+            'Player3'
         ]
         self.players = {}
         for players in self.PlayersList:

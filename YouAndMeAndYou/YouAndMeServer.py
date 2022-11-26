@@ -224,14 +224,29 @@ def main():
         'SCORE': 0
     }
 
+    # PlayerThree Config
+    #   Create PlayerTwo X, Y, Color config
+    PlayerThreePositionX = 352  # PlayerTwo X Position
+    PlayerThreePositionY = 928  # PlayerTwo Y Position
+    #   Create PlayerTwo List
+    PlayerThreeInformation = {
+        'X': PlayerThreePositionX,
+        'Y': PlayerThreePositionY,
+        'SPRITE': 'Down',
+        'ACTION': 'Static',
+        'SCORE': 0
+    }
+
     # All Player Config
     Players = {
         'Player1': PlayerOneInformation,
-        'Player2': PlayerTwoInformation
+        'Player2': PlayerTwoInformation,
+        'Player3': PlayerThreeInformation
     }
     PlayersList = [
         'Player1',
-        'Player2'
+        'Player2',
+        'Player3'
     ]
 
     # Connection to Client
