@@ -1,0 +1,34 @@
+{
+    "layers": [
+        0,
+        1,
+        3
+    ],
+    "scale": 1,
+    "tile": 64,
+    "config": {
+        "map_width": 960,
+        "map_height": 960,
+        "0": {
+            "y_top": 32,
+            "y_down": -32,
+            "x_right": 32,
+            "x_left": -32,
+            "center": 0
+        },
+        "1": {
+            "y_top": 32,
+            "y_down": -32,
+            "x_right": 32,
+            "x_left": -32,
+            "center": 0
+        },
+        "3": {
+            "y_top": 32,
+            "y_down": -32,
+            "x_right": 32,
+            "x_left": -32,
+            "center": 0
+        }
+    }
+}
