@@ -248,7 +248,7 @@ def main():
         Data = {}  # Creation of data list
         for player in PlayersList:
             Players[player]['ACTION'] = 'Static'
-            ServerSock.settimeout(0.01)
+            # ServerSock.settimeout(0.1)
             # Trying to recv PlayerOne action
             try:
                 Data = Server.DynamicRecv(Clients[player][0])  # Recv

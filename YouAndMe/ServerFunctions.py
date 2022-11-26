@@ -19,10 +19,7 @@ def DynamicSend(sock, SendData):
             break
         try:
             if int(str(packet.decode('utf-8'))) == sys.getsizeof(SendData):
-                sock.send("YES".encode('utf-8'))
                 break
-            else:
-                sock.send("NO".encode('utf-8'))
         except:
             print("Problem with data")
             Error = 3
@@ -36,9 +33,7 @@ def DynamicRecv(sock):
             packet = sock.recv(1024)
             data = packet
             sock.send(str(sys.getsizeof(data)).encode('utf-8'))
-            packet = sock.recv(1024)
-            if str(packet.decode('utf-8')) == "YES":
-                break
+            break
     except:
         data = None
     return data

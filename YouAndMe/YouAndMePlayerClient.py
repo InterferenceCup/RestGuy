@@ -402,7 +402,7 @@ def main():
     Window = TileMap.GetConfig("config")
 
     # Socket config
-    HOST = socket.gethostbyname(socket.gethostname())
+    HOST = input()
     PORT = 5000
 
     # Create Socket
