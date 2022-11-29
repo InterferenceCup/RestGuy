@@ -223,8 +223,6 @@ class TheGame(arcade.Window):
                     'LeftStatic': arcade.Sprite(path + 'Left.png'),
                     'RightStatic': arcade.Sprite(path + 'Right.png')
                 }
-                for sprite in self.players[players].player_sprite:
-                    self.players[players].player_sprite[sprite].scale = 1
                 self.players[players].set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
                 self.players[players].get_sprite()
             self.camera.set_score(players, 0)
@@ -250,6 +248,7 @@ class TheGame(arcade.Window):
             self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
         self.camera.set_position(self.player.pos_x, self.player.pos_y)
+        # self.sock.settimeout(0.02)
 
     def on_draw(self):
         arcade.start_render()

@@ -69,7 +69,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown) == 1:
                         PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RadiusLeft) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown + 1) / 4
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                'Y'] + RadiusDown + 1) / 4
                             PlayerInformation['X'] += -MovementSpeed / 2
                         else:
                             PlayerInformation['SPRITE'] = 'Left'
@@ -103,7 +104,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown) == 1:
                         PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusRight) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown + 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                'Y'] + RadiusDown + 1) / 2
                             PlayerInformation['X'] += MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Right'
@@ -137,7 +139,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] + RadiusUp + MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - RadiusDown) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusRight - 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                'X'] - RadiusRight - 1) / 2
                             PlayerInformation['Y'] += MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Up'
@@ -171,7 +174,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown - MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusLeft - 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                'X'] - RadiusLeft - 1) / 2
                             PlayerInformation['Y'] += -MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Down'
@@ -179,6 +183,7 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                     else:
                         PlayerInformation['Y'] += -MovementSpeed
     return PlayerInformation
+
 
 class Sock:
 
@@ -188,6 +193,8 @@ class Sock:
         self.port = str(port)
         self.client = None
         self.adress = None
+        self.using = False
+        self.information = 0
 
     def listen(self):
         self.sock.listen()
@@ -253,6 +260,7 @@ class Server:
             server.DynamicSend(self.servers[player].client, player.encode('utf-8'))  # Send name of Client
             server.DynamicSend(self.servers[player].client, pickle.dumps(self.players))  # Send X and Y
             server.DynamicSend(self.servers[player].client, self.map.encode('utf-8'))  # Send map
+            self.servers[player].using = True
 
     def creating_own_server(self):
         host = socket.gethostbyname(socket.gethostname())
@@ -270,33 +278,37 @@ class Server:
     def working(self, server_client, player):
         while True:
             data = {}  # Creation of data list
-            self.players[player]['ACTION'] = 'Static'
-            # ServerSock.settimeout(0.1)
+            server_client.sock.settimeout(0.001)
             # Trying to recv PlayerOne action
             try:
                 data = server.DynamicRecv(server_client.client)  # Recv
             except ConnectionError:
+                self.servers[player].using = False
                 print("Connection Error")  # Say of Error
 
             # Trying to read action
             try:
                 # If we have action
-                if data != None:
-                    # If action is normal
-                    if int(data):
-                        information = int(data)  # Read action
-                        if GetInformation(information, 0, 1):
-                            self.players[player]['SCORE'] += 1
-                            information -= 1
-                        # If action is not right
-                        if information == 192:
-                            information = 0
-                        elif information == 48:
-                            information = 0
-                        self.players[player] = EditPosition(information,
-                                                            self.players[player],
-                                                            self.walls,
-                                                            self.tile_scale)  # Making new position
+                if data == None:
+                    data = str(self.servers[player].information)
+                else:
+                    self.servers[player].using = True
+                # If action is normal
+
+                    information = int(data)  # Read action
+                    if GetInformation(information, 0, 1):
+                        self.players[player]['SCORE'] += 1
+                        information -= 1
+                    # If action is not right
+                    if information == 192:
+                        information = 0
+                    elif information == 48:
+                        information = 0
+                    self.servers[player].information = information
+                    self.players[player] = EditPosition(information,
+                                                        self.players[player],
+                                                        self.walls,
+                                                        self.tile_scale)  # Making new position
             except:
                 print("Data has benn broken")
 
@@ -312,12 +324,24 @@ class Server:
 
     def start(self):
         for player in self.player_list:
-            self.threads[player] = Thread(target = self.working, args = (self.servers[player], player))
+            self.threads[player] = Thread(target=self.working, args=(self.servers[player], player))
             print(self.threads)
         for thread in self.player_list:
             self.threads[thread].start()
         for thread in self.threads:
             self.threads[thread].join()
+
+        reconnecting = Thread(target=self.reconnect())
+        reconnecting.start()
+        reconnecting.join()
+
+    def reconnect(self):
+        while True:
+            client, adress = self.lobby_server.accept()
+            for servers in self.servers:
+                if not servers.using:
+                    server.DynamicSend(client, servers.port.encode('utf-8'))
+                    break
 
 
 def main():
