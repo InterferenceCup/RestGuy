@@ -406,12 +406,24 @@ def main():
     PORT = 5000
 
     # Create Socket
-    ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    OldClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Connection to server
     while True:
         try:
-            ClientSock.connect((HOST, PORT))
+            OldClientSock.connect((HOST, PORT))
+            print("Ok")
+            break
+        except ConnectionError:
+            print("Trying to connect to server")
+
+    NewHost = Client.DynamicRecv(OldClientSock).decode('utf-8')
+    print(NewHost)
+
+    ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        try:
+            ClientSock.connect((HOST, int(NewHost)))
             print("Ok")
             break
         except ConnectionError:

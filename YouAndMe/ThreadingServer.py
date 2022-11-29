@@ -1,7 +1,9 @@
+import random
+from threading import Thread
 import socket
 import pickle
 import JsonReadTest as TileMap
-import ServerFunctions as Server
+import ServerFunctions as server
 
 
 # Get information
@@ -32,7 +34,7 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
     RadiusDown = 32
     RadiusLeft = 20
     RadiusRight = 20
-    MovementSpeed = 10
+    MovementSpeed = 5
 
     if information == 0:
         PlayerInformation['X'] += 0
@@ -178,129 +180,151 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                         PlayerInformation['Y'] += -MovementSpeed
     return PlayerInformation
 
+class Sock:
 
-def main():
-    # Map config
-    Map = 'Dungeon_map_1'
-    Walls = TileMap.ReadJson(Map)
-    TileScale = TileMap.GetTileScale(Map)
+    def __init__(self, sock, host, port):
+        self.sock = sock
+        self.host = str(host)
+        self.port = str(port)
+        self.client = None
+        self.adress = None
 
-    # HOST CONFIG
-    HOST = socket.gethostbyname(socket.gethostname())
-    PORT = 5000
-    print(HOST, PORT)
+    def listen(self):
+        self.sock.listen()
 
-    # Socket Config
-    ServerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
-    ServerSock.bind((HOST, PORT))  # Bind of socket
-    ServerSock.listen()  # Open socket
+    def accept(self):
+        client, adress = self.sock.accept()
+        return client, adress
 
-    # Clients Config
-    Clients = {}  # Create List
 
-    # PlayerOne Config
-    #   Create PlayerOne X, Y, Color config
-    PlayerOnePositionX = 352  # PlayerOne X Position
-    PlayerOnePositionY = 928  # PlayerOne Y Position
-    #   Create PlayerOne List
-    PlayerOneInformation = {
-        'X': PlayerOnePositionX,
-        'Y': PlayerOnePositionY,
-        'SPRITE': 'Down',
-        'ACTION': 'Static',
-        'SCORE': 0
-    }
+class Server:
 
-    # PlayerTwo Config
-    #   Create PlayerTwo X, Y, Color config
-    PlayerTwoPositionX = 352  # PlayerTwo X Position
-    PlayerTwoPositionY = 928  # PlayerTwo Y Position
-    #   Create PlayerTwo List
-    PlayerTwoInformation = {
-        'X': PlayerTwoPositionX,
-        'Y': PlayerTwoPositionY,
-        'SPRITE': 'Down',
-        'ACTION': 'Static',
-        'SCORE': 0
-    }
+    def __init__(self):
+        # Map config
+        self.map = 'Dungeon_map_1'
+        self.walls = TileMap.ReadJson(self.map)
+        self.tile_scale = TileMap.GetTileScale(self.map)
 
-    # PlayerThree Config
-    #   Create PlayerTwo X, Y, Color config
-    PlayerThreePositionX = 352  # PlayerTwo X Position
-    PlayerThreePositionY = 928  # PlayerTwo Y Position
-    #   Create PlayerTwo List
-    PlayerThreeInformation = {
-        'X': PlayerThreePositionX,
-        'Y': PlayerThreePositionY,
-        'SPRITE': 'Down',
-        'ACTION': 'Static',
-        'SCORE': 0
-    }
+        # Lobby Config
+        self.lobby_host = socket.gethostbyname(socket.gethostname())
+        self.lobby_port = 5000
+        print(self.lobby_host, self.lobby_port)
 
-    # All Player Config
-    Players = {
-        'Player1': PlayerOneInformation,
-        'Player2': PlayerTwoInformation,
-        'Player3': PlayerThreeInformation
-    }
-    PlayersList = [
-        'Player1',
-        'Player2',
-        'Player3'
-    ]
+        # Lobby socket Config
+        self.lobby_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
+        self.lobby_server.bind((self.lobby_host, self.lobby_port))  # Bind of socket
 
-    # Connection to Client
-    for player in PlayersList:
-        Client, Address = ServerSock.accept()  # Accept connection
-        Clients[player] = [Client, Address]  # Accept data of Client
-        print("Connected to", {Clients[player][1]})  # Printing for me
-        Server.DynamicSend(Clients[player][0], player.encode('utf-8'))  # Send name of Client
-        Server.DynamicSend(Clients[player][0], pickle.dumps(Players))  # Send X and Y
-        Server.DynamicSend(Clients[player][0], Map.encode('utf-8'))
+        # Init players
+        self.players = {
+            'Player1': self.create_players(352, 928),
+            'Player2': self.create_players(352, 928)
+        }
+        self.player_list = [
+            'Player1',
+            'Player2'
+        ]
 
-    # Start working
-    while True:
-        Data = {}  # Creation of data list
-        for player in PlayersList:
-            Players[player]['ACTION'] = 'Static'
+        # Init server
+        self.clients = {}
+        self.servers = {}
+        self.threads = {}
+
+    def create_players(self, X, Y):
+        PlayerInformation = {
+            'X': X,
+            'Y': Y,
+            'SPRITE': 'Down',
+            'ACTION': 'Static',
+            'SCORE': 0
+        }
+        return PlayerInformation
+
+    def connecting(self):
+        self.lobby_server.listen()  # Open socket
+        for player in self.player_list:
+            client, address = self.lobby_server.accept()  # Accept connection
+            self.clients[player] = [client, address]  # Accept data of Client
+            print("Connected to", {self.clients[player][1]})  # Printing for me
+            self.servers[player] = self.creating_own_server()
+            server.DynamicSend(self.clients[player][0], self.servers[player].port.encode('utf-8'))
+            self.servers[player].listen()
+            self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
+            print("Accepted Connection")
+            server.DynamicSend(self.servers[player].client, player.encode('utf-8'))  # Send name of Client
+            server.DynamicSend(self.servers[player].client, pickle.dumps(self.players))  # Send X and Y
+            server.DynamicSend(self.servers[player].client, self.map.encode('utf-8'))  # Send map
+
+    def creating_own_server(self):
+        host = socket.gethostbyname(socket.gethostname())
+        port = random.randrange(1000, 10000)
+        while True:
+            try:
+                client_server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
+                client_server_sock.bind((host, port))  # Bind of socket
+                break
+            except:
+                port = random.randrange(1000, 10000)
+        client_server = Sock(client_server_sock, host, port)
+        return client_server
+
+    def working(self, server_client, player):
+        while True:
+            data = {}  # Creation of data list
+            self.players[player]['ACTION'] = 'Static'
             # ServerSock.settimeout(0.1)
             # Trying to recv PlayerOne action
             try:
-                Data = Server.DynamicRecv(Clients[player][0])  # Recv
+                data = server.DynamicRecv(server_client.client)  # Recv
             except ConnectionError:
                 print("Connection Error")  # Say of Error
 
             # Trying to read action
             try:
                 # If we have action
-                if Data != None:
+                if data != None:
                     # If action is normal
-                    if int(Data):
-                        Information = int(Data)  # Read action
-                        if GetInformation(Information, 0, 1):
-                            Players[player]['SCORE'] += 1
-                            Information -= 1
+                    if int(data):
+                        information = int(data)  # Read action
+                        if GetInformation(information, 0, 1):
+                            self.players[player]['SCORE'] += 1
+                            information -= 1
                         # If action is not right
-                        if Information == 192:
-                            Information = 0
-                        elif Information == 48:
-                            Information = 0
-                        Players[player] = EditPosition(Information,
-                                                       Players[player],
-                                                       Walls,
-                                                       TileScale)  # Making new position
+                        if information == 192:
+                            information = 0
+                        elif information == 48:
+                            information = 0
+                        self.players[player] = EditPosition(information,
+                                                            self.players[player],
+                                                            self.walls,
+                                                            self.tile_scale)  # Making new position
             except:
                 print("Data has benn broken")
 
             # If we can send without problem
-            if Server.DynamicSend(Clients[player][0], pickle.dumps(Players)) != 0:
+            if server.DynamicSend(server_client.client, pickle.dumps(self.players)) != 0:
                 try:
-                    Clients[player] = Server.Accept(ServerSock,
-                                                    Players,
-                                                    player,
-                                                    Map)  # Try to create new connection
+                    server_client.client = server.Accept(server_client.sock,
+                                                         self.players,
+                                                         player,
+                                                         self.map)  # Try to create new connection
                 except:
                     print("Bad")
+
+    def start(self):
+        for player in self.player_list:
+            self.threads[player] = Thread(target = self.working, args = (self.servers[player], player))
+            print(self.threads)
+        for thread in self.player_list:
+            self.threads[thread].start()
+        for thread in self.threads:
+            self.threads[thread].join()
+
+
+def main():
+    ThreadingServer = Server()
+    ThreadingServer.connecting()
+    ThreadingServer.start()
+    print("That's all")
 
 
 main()
