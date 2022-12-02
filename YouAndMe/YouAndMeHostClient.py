@@ -248,7 +248,7 @@ class TheGame(arcade.Window):
             self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
         self.camera.set_position(self.player.pos_x, self.player.pos_y)
-        # self.sock.settimeout(0.02)
+        self.sock.settimeout(0.02)
 
     def on_draw(self):
         arcade.start_render()

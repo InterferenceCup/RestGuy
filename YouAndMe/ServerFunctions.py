@@ -8,7 +8,7 @@ def DynamicSend(sock, SendData):
         try:
             sock.send(SendData)
         except:
-            print("Problem with send")
+            # print("Problem with send")
             Error = 1
             break
         try:
@@ -50,4 +50,4 @@ def Accept(Sock, Players, String, Map):
     DynamicSend(Client, String.encode('utf-8'))  # Send name
     DynamicSend(Client, pickle.dumps(Players))  # Send position
     DynamicSend(Client, Map.encode('utf-8'))
-    return [Client, Address]  # Return new address
+    return Client, Address  # Return new address

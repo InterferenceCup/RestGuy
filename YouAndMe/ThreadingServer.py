@@ -276,9 +276,10 @@ class Server:
         return client_server
 
     def working(self, server_client, player):
+        print("Start " + player + "'s server")
         while True:
             data = {}  # Creation of data list
-            server_client.sock.settimeout(0.001)
+            server_client.sock.settimeout(0.02)
             # Trying to recv PlayerOne action
             try:
                 data = server.DynamicRecv(server_client.client)  # Recv
@@ -315,33 +316,38 @@ class Server:
             # If we can send without problem
             if server.DynamicSend(server_client.client, pickle.dumps(self.players)) != 0:
                 try:
-                    server_client.client = server.Accept(server_client.sock,
-                                                         self.players,
-                                                         player,
-                                                         self.map)  # Try to create new connection
+                    self.servers[player].using = False
+                    self.servers[player].client, self.servers[player].adress = server.Accept(server_client.sock,
+                                                                                             self.players,
+                                                                                             player,
+                                                                                             self.map)  # Try to create new connection
                 except:
-                    print("Bad")
+                    # print("Bad")
+                    print('', end='')
+            else:
+                self.servers[player].using = True
 
     def start(self):
         for player in self.player_list:
             self.threads[player] = Thread(target=self.working, args=(self.servers[player], player))
-            print(self.threads)
-        for thread in self.player_list:
+        self.threads['reconnect'] = Thread(target=self.reconnect)
+        print(self.threads)
+        for thread in self.threads:
             self.threads[thread].start()
         for thread in self.threads:
             self.threads[thread].join()
 
-        reconnecting = Thread(target=self.reconnect())
-        reconnecting.start()
-        reconnecting.join()
-
     def reconnect(self):
+        print("Reconnect active")
         while True:
             client, adress = self.lobby_server.accept()
             for servers in self.servers:
-                if not servers.using:
-                    server.DynamicSend(client, servers.port.encode('utf-8'))
+                if not self.servers[servers].using:
+                    print("Server Found")
+                    server.DynamicSend(client, self.servers[servers].port.encode('utf-8'))
                     break
+                else:
+                    print("Server is blocked")
 
 
 def main():
