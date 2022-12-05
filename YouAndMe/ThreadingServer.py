@@ -215,7 +215,8 @@ class Server:
         # Lobby Config
         self.lobby_host = socket.gethostbyname(socket.gethostname())
         self.lobby_port = 5000
-        print(self.lobby_host, self.lobby_port)
+        print("Host: " + str(self.lobby_host))
+        print("Port: " + str(self.lobby_port))
 
         # Lobby socket Config
         self.lobby_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
@@ -236,6 +237,11 @@ class Server:
         self.servers = {}
         self.threads = {}
 
+        print("Map: " + self.map)
+        print("Waiting players: ")
+        for players in self.player_list:
+            print("\t - " + players)
+
     def create_players(self, X, Y):
         PlayerInformation = {
             'X': X,
@@ -253,14 +259,27 @@ class Server:
             self.clients[player] = [client, address]  # Accept data of Client
             print("Connected to", {self.clients[player][1]})  # Printing for me
             self.servers[player] = self.creating_own_server()
-            server.DynamicSend(self.clients[player][0], self.servers[player].port.encode('utf-8'))
-            self.servers[player].listen()
-            self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
-            print("Accepted Connection")
-            server.DynamicSend(self.servers[player].client, player.encode('utf-8'))  # Send name of Client
-            server.DynamicSend(self.servers[player].client, pickle.dumps(self.players))  # Send X and Y
-            server.DynamicSend(self.servers[player].client, self.map.encode('utf-8'))  # Send map
-            self.servers[player].using = True
+            print("\t - Socket created")
+            while True:
+                if server.DynamicSend(self.clients[player][0], self.servers[player].port.encode('utf-8')) != 0:
+                    print("\t - Reconnecting")
+                    continue
+                self.servers[player].listen()
+                self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
+                self.servers[player].sock.settimeout(0.5)
+                print("\t - Accepted Connection")
+                if server.DynamicSend(self.servers[player].client, player.encode('utf-8')) != 0:  # Send name of Client
+                    print("\t - Reconnecting")
+                    continue
+                if server.DynamicSend(self.servers[player].client, pickle.dumps(self.players)) != 0:  # Send X and Y
+                    print("\t - Reconnecting")
+                    continue
+                if server.DynamicSend(self.servers[player].client, self.map.encode('utf-8')) != 0:  # Send map
+                    print("\t - Reconnecting")
+                    continue
+                self.servers[player].using = True
+                print("\t - Data was send")
+                break
 
     def creating_own_server(self):
         host = socket.gethostbyname(socket.gethostname())

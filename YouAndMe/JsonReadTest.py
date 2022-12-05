@@ -142,3 +142,31 @@ def GetConfig(JsonName):
     with open(JsonName + '.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return [Data["screen_height"], Data["screen_width"], Data["title"]]
+
+
+def GetLastIp():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["last_ip"]
+
+
+def GetLastPort():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["last_port"]
+
+
+def SetLastIp(Ip):
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    Data['last_ip'] = Ip
+    with open('config.json', 'w') as Config:
+        json.dump(Data, Config, indent=4)
+
+
+def SetLastPort(Port):
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    Data['last_port'] = Port
+    with open('config.json', 'w') as Config:
+        json.dump(Data, Config, indent=4)
