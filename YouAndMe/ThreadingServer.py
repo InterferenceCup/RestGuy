@@ -69,7 +69,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown) == 1:
                         PlayerInformation['X'] += (Wall.x_right + Wall.x - PlayerInformation['X'] + RadiusLeft) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown + 1) / 4
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                'Y'] + RadiusDown + 1) / 4
                             PlayerInformation['X'] += -MovementSpeed / 2
                         else:
                             PlayerInformation['SPRITE'] = 'Left'
@@ -103,7 +104,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown) == 1:
                         PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusRight) / 2
                         if CenterWall == -1:
-                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown + 1) / 2
+                            PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation[
+                                'Y'] + RadiusDown + 1) / 2
                             PlayerInformation['X'] += MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Right'
@@ -137,7 +139,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] + RadiusUp + MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_down + Wall.y - PlayerInformation['Y'] - RadiusDown) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusRight - 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                'X'] - RadiusRight - 1) / 2
                             PlayerInformation['Y'] += MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Up'
@@ -171,7 +174,8 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                                       PlayerInformation['Y'] - RadiusDown - MovementSpeed) == 1:
                         PlayerInformation['Y'] += (Wall.y_top + Wall.y - PlayerInformation['Y'] + RadiusDown) / 2
                         if CenterWall == -1:
-                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation['X'] - RadiusLeft - 1) / 2
+                            PlayerInformation['X'] += (Wall.x_left + Wall.x - PlayerInformation[
+                                'X'] - RadiusLeft - 1) / 2
                             PlayerInformation['Y'] += -MovementSpeed
                         else:
                             PlayerInformation['SPRITE'] = 'Down'
@@ -179,6 +183,7 @@ def EditPosition(information, PlayerInformation, Walls, TileScale):
                     else:
                         PlayerInformation['Y'] += -MovementSpeed
     return PlayerInformation
+
 
 class Sock:
 
@@ -188,6 +193,8 @@ class Sock:
         self.port = str(port)
         self.client = None
         self.adress = None
+        self.using = False
+        self.information = 0
 
     def listen(self):
         self.sock.listen()
@@ -208,7 +215,8 @@ class Server:
         # Lobby Config
         self.lobby_host = socket.gethostbyname(socket.gethostname())
         self.lobby_port = 5000
-        print(self.lobby_host, self.lobby_port)
+        print("Host: " + str(self.lobby_host))
+        print("Port: " + str(self.lobby_port))
 
         # Lobby socket Config
         self.lobby_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
@@ -229,6 +237,11 @@ class Server:
         self.servers = {}
         self.threads = {}
 
+        print("Map: " + self.map)
+        print("Waiting players: ")
+        for players in self.player_list:
+            print("\t - " + players)
+
     def create_players(self, X, Y):
         PlayerInformation = {
             'X': X,
@@ -246,13 +259,27 @@ class Server:
             self.clients[player] = [client, address]  # Accept data of Client
             print("Connected to", {self.clients[player][1]})  # Printing for me
             self.servers[player] = self.creating_own_server()
-            server.DynamicSend(self.clients[player][0], self.servers[player].port.encode('utf-8'))
-            self.servers[player].listen()
-            self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
-            print("Accepted Connection")
-            server.DynamicSend(self.servers[player].client, player.encode('utf-8'))  # Send name of Client
-            server.DynamicSend(self.servers[player].client, pickle.dumps(self.players))  # Send X and Y
-            server.DynamicSend(self.servers[player].client, self.map.encode('utf-8'))  # Send map
+            print("\t - Socket created")
+            while True:
+                if server.DynamicSend(self.clients[player][0], self.servers[player].port.encode('utf-8')) != 0:
+                    print("\t - Reconnecting")
+                    continue
+                self.servers[player].listen()
+                self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
+                self.servers[player].sock.settimeout(0.5)
+                print("\t - Accepted Connection")
+                if server.DynamicSend(self.servers[player].client, player.encode('utf-8')) != 0:  # Send name of Client
+                    print("\t - Reconnecting")
+                    continue
+                if server.DynamicSend(self.servers[player].client, pickle.dumps(self.players)) != 0:  # Send X and Y
+                    print("\t - Reconnecting")
+                    continue
+                if server.DynamicSend(self.servers[player].client, self.map.encode('utf-8')) != 0:  # Send map
+                    print("\t - Reconnecting")
+                    continue
+                self.servers[player].using = True
+                print("\t - Data was send")
+                break
 
     def creating_own_server(self):
         host = socket.gethostbyname(socket.gethostname())
@@ -268,56 +295,78 @@ class Server:
         return client_server
 
     def working(self, server_client, player):
+        print("Start " + player + "'s server")
         while True:
             data = {}  # Creation of data list
-            self.players[player]['ACTION'] = 'Static'
-            # ServerSock.settimeout(0.1)
+            server_client.sock.settimeout(0.02)
             # Trying to recv PlayerOne action
             try:
                 data = server.DynamicRecv(server_client.client)  # Recv
             except ConnectionError:
+                self.servers[player].using = False
                 print("Connection Error")  # Say of Error
 
             # Trying to read action
             try:
                 # If we have action
-                if data != None:
-                    # If action is normal
-                    if int(data):
-                        information = int(data)  # Read action
-                        if GetInformation(information, 0, 1):
-                            self.players[player]['SCORE'] += 1
-                            information -= 1
-                        # If action is not right
-                        if information == 192:
-                            information = 0
-                        elif information == 48:
-                            information = 0
-                        self.players[player] = EditPosition(information,
-                                                            self.players[player],
-                                                            self.walls,
-                                                            self.tile_scale)  # Making new position
+                if data == None:
+                    data = str(self.servers[player].information)
+                else:
+                    self.servers[player].using = True
+                # If action is normal
+
+                    information = int(data)  # Read action
+                    if GetInformation(information, 0, 1):
+                        self.players[player]['SCORE'] += 1
+                        information -= 1
+                    # If action is not right
+                    if information == 192:
+                        information = 0
+                    elif information == 48:
+                        information = 0
+                    self.servers[player].information = information
+                    self.players[player] = EditPosition(information,
+                                                        self.players[player],
+                                                        self.walls,
+                                                        self.tile_scale)  # Making new position
             except:
                 print("Data has benn broken")
 
             # If we can send without problem
             if server.DynamicSend(server_client.client, pickle.dumps(self.players)) != 0:
                 try:
-                    server_client.client = server.Accept(server_client.sock,
-                                                         self.players,
-                                                         player,
-                                                         self.map)  # Try to create new connection
+                    self.servers[player].using = False
+                    self.servers[player].client, self.servers[player].adress = server.Accept(server_client.sock,
+                                                                                             self.players,
+                                                                                             player,
+                                                                                             self.map)  # Try to create new connection
                 except:
-                    print("Bad")
+                    # print("Bad")
+                    print('', end='')
+            else:
+                self.servers[player].using = True
 
     def start(self):
         for player in self.player_list:
-            self.threads[player] = Thread(target = self.working, args = (self.servers[player], player))
-            print(self.threads)
-        for thread in self.player_list:
+            self.threads[player] = Thread(target=self.working, args=(self.servers[player], player))
+        self.threads['reconnect'] = Thread(target=self.reconnect)
+        print(self.threads)
+        for thread in self.threads:
             self.threads[thread].start()
         for thread in self.threads:
             self.threads[thread].join()
+
+    def reconnect(self):
+        print("Reconnect active")
+        while True:
+            client, adress = self.lobby_server.accept()
+            for servers in self.servers:
+                if not self.servers[servers].using:
+                    print("Server Found")
+                    server.DynamicSend(client, self.servers[servers].port.encode('utf-8'))
+                    break
+                else:
+                    print("Server is blocked")
 
 
 def main():

@@ -3,10 +3,13 @@ import queue
 import random
 import sys
 import socket
+import time
+
 import arcade
 import pickle
 import ServerFunctions as Client
 import JsonReadTest as TileMap
+
 
 
 class Player:
@@ -223,8 +226,6 @@ class TheGame(arcade.Window):
                     'LeftStatic': arcade.Sprite(path + 'Left.png'),
                     'RightStatic': arcade.Sprite(path + 'Right.png')
                 }
-                for sprite in self.players[players].player_sprite:
-                    self.players[players].player_sprite[sprite].scale = 1
                 self.players[players].set_sprite(data[playernumber]['SPRITE'], data[playernumber]['ACTION'])
                 self.players[players].get_sprite()
             self.camera.set_score(players, 0)
@@ -250,6 +251,7 @@ class TheGame(arcade.Window):
             self.Target = [random.randint(1, 28), random.randint(1, 28)]
 
         self.camera.set_position(self.player.pos_x, self.player.pos_y)
+        self.sock.settimeout(0.02)
 
     def on_draw(self):
         arcade.start_render()
@@ -315,8 +317,7 @@ class TheGame(arcade.Window):
                 if self.players[players].action != 'Static':
                     self.players[players].sprite.update_animation()
 
-        if Client.DynamicSend(self.sock, str(self.player.player_information).encode()) != 0:
-            print("Bad")
+        Client.DynamicSend(self.sock, str(self.player.player_information).encode())
 
         try:
             Data = pickle.loads(Client.DynamicRecv(self.sock))
@@ -401,51 +402,61 @@ def main():
     # Window config
     Window = TileMap.GetConfig("config")
 
-    # Socket config
-    HOST = socket.gethostbyname(socket.gethostname())
-    PORT = 5000
-
-    # Create Socket
-    OldClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connection to server
     while True:
         try:
-            OldClientSock.connect((HOST, PORT))
-            print("Ok")
+            # Socket config
+            HOST = socket.gethostbyname(socket.gethostname())
+            PORT = 5000
+
+            # Create Socket
+            OldClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connection to server
+            while True:
+                try:
+                    OldClientSock.connect((HOST, PORT))
+                    print("Connected to lobby")
+                    break
+                except ConnectionError:
+                    print("Trying to connect to server")
+
+            NewHost = Client.DynamicRecv(OldClientSock).decode('utf-8')
+
+            ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            while True:
+                try:
+                    ClientSock.connect((HOST, int(NewHost)))
+                    print("Connected to own socket")
+                    break
+                except ConnectionError:
+                    print("Trying to connect to server")
+
+            # Listen PlayerNumber
+            PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
+
+            # Listen Data for balls
+            while True:
+                try:
+                    Data = Client.DynamicRecv(ClientSock)  # Listen data
+                    Data = pickle.loads(Data)  # Process data
+                    # print(Data)  # Print it for me
+                    break
+                except ConnectionError:
+                    print("Waiting another players")
+
+            # Listen map
+            Map = Client.DynamicRecv(ClientSock).decode('utf-8')
             break
-        except ConnectionError:
-            print("Trying to connect to server")
+        except:
+            print('')
+            print("+--------------------------------------+")
+            print(" Server is broken. Ask host to restart it. ")
+            print("+--------------------------------------+")
 
-    NewHost = Client.DynamicRecv(OldClientSock).decode('utf-8')
-    print(NewHost)
-
-    ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    while True:
-        try:
-            ClientSock.connect((HOST, int(NewHost)))
-            print("Ok")
-            break
-        except ConnectionError:
-            print("Trying to connect to server")
-
-    # Listen PlayerNumber
-    PlayerNumber = Client.DynamicRecv(ClientSock).decode('utf-8')
-    print(PlayerNumber)  # Print it for me
-
-    # Listen Data for balls
-    while True:
-        try:
-            Data = Client.DynamicRecv(ClientSock)  # Listen data
-            Data = pickle.loads(Data)  # Process data
-            print(Data)  # Print it for me
-            break
-        except ConnectionError:
-            print("Waiting another players")
-
-    # Listen map
-    Map = Client.DynamicRecv(ClientSock).decode('utf-8')
-
+    print('')
+    print("+--------------------+")
+    print(" Successful connection ")
+    print("+--------------------+")
     # Create Game
     #   Create window
     window = TheGame(Window[1],

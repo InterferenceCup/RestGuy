@@ -92,7 +92,7 @@ def do_register():
     result = Base.InsertTableLogins(Base.Connect('Base'), username, password)
     base.close()
     if result == 0:
-        return result
+        return "Successful register."
     else:
         if result == -7:
             return "User with that name has already been."
