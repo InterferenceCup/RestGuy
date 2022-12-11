@@ -1,4 +1,7 @@
 import subprocess
+
+import requests
+
 import JsonReadTest as Config
 import time
 from threading import Thread
@@ -54,6 +57,9 @@ class MainGame(arcade.Window):
             'see_all_rating',
             'add/delete/change'
         ]
+        self.helper = {}
+        self.name = 'Unknown'
+        self.set_helper()
         self.uimanager = {}
         self.menu = {}
         self.now_menu = 'main_menu'
@@ -86,6 +92,9 @@ class MainGame(arcade.Window):
 
     def on_log_in_button_click(self, event):
         self.now_menu = 'log_in'
+        self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['hello']
+        self.menu[self.now_menu]['username'].child.text = Config.GetLastUsername()
+        self.menu[self.now_menu]['password'].child.text = Config.GetLastPassword()
         self.set_manager()
 
     def on_account_button_click(self, event):
@@ -93,24 +102,132 @@ class MainGame(arcade.Window):
         self.set_manager()
 
     def on_acc_settings_button_click(self, event):
-        self.now_menu = 'information'
-        self.set_manager()
+        if self.name != "Unknown":
+            self.now_menu = 'information'
+            payload = {
+                'username': self.name
+            }
+            try:
+                with requests.Session() as s:
+                    result = str(s.post('http://localhost:8080/find/account', data=payload).content.decode()).split(
+                        sep='|')
+                    print(result)
+                self.menu[self.now_menu]['information'].child.text = (
+                        self.helper[self.now_menu]['information'] +
+                        self.helper[self.now_menu]['name'] + result[0] +
+                        self.helper[self.now_menu]['password'] + result[1] +
+                        self.helper[self.now_menu]['score'] + result[2] +
+                        self.helper[self.now_menu]['steps'] + result[3] +
+                        self.helper[self.now_menu]['final']
+                )
+            except:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+
+            self.set_manager()
+
+    def on_confirm_click(self, event):
+        if self.now_menu == 'change_name':
+            self.try_to_change_name()
+        elif self.now_menu == 'change_password':
+            self.try_to_change_password()
+        elif self.now_menu == 'delete_account':
+            self.try_to_delete()
+
+    def try_to_change_name(self):
+        payload = {
+            'username': self.menu[self.now_menu]['username'].child.text.lower()
+        }
+        try:
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/find/account', data=payload).content.decode()).split(sep='|')
+            if len(result) != 1:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['no']
+            else:
+                payload = {
+                    'username': self.name,
+                    'newusername': self.menu[self.now_menu]['username'].child.text.lower()
+                }
+                with requests.Session() as s:
+                    result = str(s.post('http://localhost:8080/name', data=payload).content.decode())
+                if result == "Successful update.":
+                    self.name = payload['newusername']
+                    Config.SetLastUsername(self.name)
+                    self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                                                                             'successful'] + self.name
+                else:
+                    self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+        except:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+
+    def try_to_change_password(self):
+        try:
+            payload = {
+                'username': self.name,
+                'password': Config.GetLastPassword().lower(),
+                'newpassword': self.menu[self.now_menu]['new_password'].child.text.lower()
+            }
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/password', data=payload).content.decode())
+            print(result)
+            if result == "Successful changes.":
+                Config.SetLastPassword(self.menu[self.now_menu]['new_password'].child.text)
+                self.menu[self.now_menu]['information'].child.text = (self.helper[self.now_menu]['successful'] +
+                                                                      self.menu[self.now_menu][
+                                                                          'new_password'].child.text
+                                                                      )
+            else:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+        except:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+
+    def try_to_delete(self):
+        payload = {
+            'username': self.name
+        }
+        try:
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/delete', data=payload).content.decode())
+            if result == "Successful delete.":
+                self.now_menu = 'main_menu'
+                self.set_manager()
+            else:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['error']
+        except:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
 
     def on_change_name_button_click(self, event):
         self.now_menu = 'change_name'
+        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['hello']
+        self.menu[self.now_menu]['username'].child.text = self.name
         self.set_manager()
 
     def on_change_password_button_click(self, event):
         self.now_menu = 'change_password'
+        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['hello']
         self.set_manager()
 
     def on_delete_account_button_click(self, event):
         self.now_menu = 'delete_account'
+        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['hello']
         self.set_manager()
 
     def on_maps_button_click(self, event):
-        self.now_menu = 'see_all_rating'
-        self.set_manager()
+        if self.name != 'Unknown':
+            self.now_menu = 'see_all_rating'
+            try:
+                with requests.Session() as s:
+                    result = s.get('http://localhost:8080/ratings').text
+                result = result.split(sep='|')
+                text = '------LEADERS BOARD------\n'
+                for i in range(len(result) - 1):
+                    result[i] = result[i].split(sep='-')
+                    text = text + str(i + 1) + ')        ' + result[i][0].strip() + '        with rating        ' + str(
+                        result[i][1].strip()) + '        and number of feedbacks        ' + str(
+                        result[i][2].strip()) + '\n'
+                self.menu[self.now_menu]['information'].child.text = text
+            except:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+            self.set_manager()
 
     def on_add_delete_change_button_click(self, event):
         self.now_menu = 'add/delete/change'
@@ -118,6 +235,18 @@ class MainGame(arcade.Window):
 
     def on_leaders_board_button_click(self, event):
         self.now_menu = 'leaders_board'
+        try:
+            with requests.Session() as s:
+                result = s.get('http://localhost:8080/users').text
+            result = result.split(sep='|')
+            text = '------LEADERS BOARD------\n'
+            for i in range(len(result) - 1):
+                result[i] = result[i].split(sep='-')
+                text = text + str(i + 1) + ')        ' + result[i][0].strip() + '        with score        ' + str(
+                    result[i][2].strip()) + '\n'
+            self.menu[self.now_menu]['leaders_board'].child.text = text
+        except:
+            self.menu[self.now_menu]['leaders_board'].child.text = self.helper[self.now_menu]['connection_error']
         self.set_manager()
 
     def on_connect_button_click(self, event):
@@ -129,6 +258,48 @@ class MainGame(arcade.Window):
 
     def on_exit_button_click(self, event):
         self.close()
+
+    def on_try_to_log_in_button_click(self, event):
+        Config.SetLastUsername(self.menu[self.now_menu]['username'].child.text.lower())
+        Config.SetLastPassword(self.menu[self.now_menu]['password'].child.text.lower())
+        payload = {
+            'username': self.menu[self.now_menu]['username'].child.text.lower(),
+            'password': self.menu[self.now_menu]['password'].child.text.lower()
+        }
+        try:
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/login', data=payload).content.decode())
+        except:
+            result = "Connection Error"
+        if result == 'Incorrect password':
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['incorrect_password']
+        elif result == 'Login failed':
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['error_with_log_in']
+        elif result == "Connection Error":
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['connection_error']
+        else:
+            self.name = result
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['successful'] + self.name
+
+    def on_register_button_click(self, event):
+        Config.SetLastUsername(self.menu[self.now_menu]['username'].child.text.lower())
+        Config.SetLastPassword(self.menu[self.now_menu]['password'].child.text.lower())
+        payload = {
+            'username': self.menu[self.now_menu]['username'].child.text.lower(),
+            'password': self.menu[self.now_menu]['password'].child.text.lower()
+        }
+        try:
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/register', data=payload).content.decode())
+        except:
+            result = "Connection Error"
+        if result == "Connection Error":
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['connection_error']
+        elif result == "User with that name has already been.":
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['error_with_register']
+        else:
+            self.name = Config.GetLastUsername()
+            self.menu[self.now_menu]['log_console'].child.text = self.helper[self.now_menu]['successful'] + self.name
 
     def on_back_from_host_button_click(self, event):
         self.now_menu = 'play'
@@ -227,6 +398,7 @@ class MainGame(arcade.Window):
                 self.player_console_tread.start()
             if self.player_text != None:
                 self.menu['player']['player_console'].child.text = self.player_text
+
         self.uimanager[self.now_menu].draw()
 
     def set_manager(self):
@@ -392,6 +564,8 @@ class MainGame(arcade.Window):
                                                   height=self.button_height)
         #   CLICKS
         back_from_log_in.on_click = self.on_account_button_click
+        try_to_log_in.on_click = self.on_try_to_log_in_button_click
+        register_button.on_click = self.on_register_button_click
 
         # ACCOUNT SETTINGS
         #   OBJECTS
@@ -401,13 +575,39 @@ class MainGame(arcade.Window):
         information_button = arcade.gui.UIFlatButton(text="Information",
                                                      width=self.button_width,
                                                      height=self.button_height)
-        information_console = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="Hello, I'm information",
-                                                                              width=self.width - self.button_height / 8 * 2 - 12 * 2,
-                                                                              height=self.height / 2,
-                                                                              font_name="Kenney Blocks",
-                                                                              text_color=arcade.color.WHITE),
-                                                  border_width=12,
-                                                  border_color=arcade.color.WHITE)
+        information_console_information = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="Hello, I'm information",
+                                                                                          width=self.width - self.button_height / 8 * 2 - 12 * 2,
+                                                                                          height=self.height / 2,
+                                                                                          font_name="Kenney Blocks",
+                                                                                          text_color=arcade.color.WHITE),
+
+                                                              border_width=12,
+                                                              border_color=arcade.color.WHITE)
+        information_console_change_name = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="Hello, I'm information",
+                                                                                          width=self.width - self.button_height / 8 * 2 - 12 * 2,
+                                                                                          height=self.height / 2,
+                                                                                          font_name="Kenney Blocks",
+                                                                                          text_color=arcade.color.WHITE),
+
+                                                              border_width=12,
+                                                              border_color=arcade.color.WHITE)
+        information_console_change_password = arcade.gui.UIBorder(
+            child=arcade.gui.UITextArea(text="Hello, I'm information",
+                                        width=self.width - self.button_height / 8 * 2 - 12 * 2,
+                                        height=self.height / 2,
+                                        font_name="Kenney Blocks",
+                                        text_color=arcade.color.WHITE),
+
+            border_width=12,
+            border_color=arcade.color.WHITE)
+        information_console_delete = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="Hello, I'm information",
+                                                                                     width=self.width - self.button_height / 8 * 2 - 12 * 2,
+                                                                                     height=self.height / 2,
+                                                                                     font_name="Kenney Blocks",
+                                                                                     text_color=arcade.color.WHITE),
+
+                                                         border_width=12,
+                                                         border_color=arcade.color.WHITE)
         old_password_text = arcade.gui.UITextArea(text="Current password",
                                                   width=self.button_width * 2,
                                                   height=self.button_height / 2,
@@ -418,14 +618,21 @@ class MainGame(arcade.Window):
                                                   height=self.button_height / 2,
                                                   font_name="Kenney Blocks",
                                                   text_color=arcade.color.WHITE)
-        old_password_input = arcade.gui.UIBorder(child=arcade.gui.UIInputText(text='Config.GetLastPort()',
-                                                                              font_name="Kenney Blocks",
-                                                                              width=self.button_width * 2,
-                                                                              height=self.button_height / 2,
-                                                                              text_color=arcade.color.WHITE),
-                                                 border_width=12,
-                                                 border_color=arcade.color.WHITE)
-        new_password_input = arcade.gui.UIBorder(child=arcade.gui.UIInputText(text='Config.GetLastPort()',
+        old_password = arcade.gui.UIBorder(child=arcade.gui.UIInputText(text=Config.GetLastPassword(),
+                                                                        font_name="Kenney Blocks",
+                                                                        width=self.button_width * 2,
+                                                                        height=self.button_height / 2,
+                                                                        text_color=arcade.color.WHITE),
+                                           border_width=12,
+                                           border_color=arcade.color.WHITE)
+        new_password = arcade.gui.UIBorder(child=arcade.gui.UIInputText(text='',
+                                                                        font_name="Kenney Blocks",
+                                                                        width=self.button_width * 2,
+                                                                        height=self.button_height / 2,
+                                                                        text_color=arcade.color.WHITE),
+                                           border_width=12,
+                                           border_color=arcade.color.WHITE)
+        new_username_input = arcade.gui.UIBorder(child=arcade.gui.UIInputText(text='',
                                                                               font_name="Kenney Blocks",
                                                                               width=self.button_width * 2,
                                                                               height=self.button_height / 2,
@@ -446,6 +653,7 @@ class MainGame(arcade.Window):
         change_name_button.on_click = self.on_change_name_button_click
         change_password_button.on_click = self.on_change_password_button_click
         delete_acc_button.on_click = self.on_delete_account_button_click
+        confirm_button.on_click = self.on_confirm_click
 
         # LEADERS BOARD
         leaders_board = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="---LEADERS BOARD---",
@@ -557,7 +765,7 @@ class MainGame(arcade.Window):
                 'back': back_from_log_in,
                 'information_button': information_button,
                 'change_name': change_name_button,
-                'information': information_console,
+                'information': information_console_information,
                 'change_password': change_password_button,
                 'delete_account': delete_acc_button
             },
@@ -567,9 +775,9 @@ class MainGame(arcade.Window):
                 'change_name': change_name_button,
                 'change_password': change_password_button,
                 'delete_account': delete_acc_button,
-                'information': information_console,
+                'information': information_console_change_name,
                 'username_text': username_text,
-                'username': username_bordered,
+                'username': new_username_input,
                 'confirm': confirm_button
             },
             'change_password': {
@@ -578,18 +786,18 @@ class MainGame(arcade.Window):
                 'change_name': change_name_button,
                 'change_password': change_password_button,
                 'delete_account': delete_acc_button,
-                'information': information_console,
+                'information': information_console_change_password,
                 'old_password_text': old_password_text,
                 'new_password_text': new_password_text,
-                'old_password_input': old_password_input,
-                'new_password_input': new_password_input,
+                'old_password': old_password,
+                'new_password': new_password,
                 'confirm': confirm_button
             },
             'delete_account': {
                 'back': back_from_log_in,
                 'information_button': information_button,
                 'change_name': change_name_button,
-                'information': information_console,
+                'information': information_console_delete,
                 'change_password': change_password_button,
                 'delete_account': delete_acc_button,
                 'confirm': confirm_button
@@ -993,7 +1201,7 @@ class MainGame(arcade.Window):
                             anchor_y="top",
                             align_x=self.button_height / 8,
                             align_y=-self.button_height / 8 * 4 - self.button_height * 2 - self.height / 2,
-                            child=self.menu[menu]['old_password_input'],
+                            child=self.menu[menu]['old_password'],
                         )
                     )
                     self.uimanager[menu].add(
@@ -1011,7 +1219,7 @@ class MainGame(arcade.Window):
                             anchor_y="top",
                             align_x=self.button_height / 8 * 2 + 12 * 2 + self.button_width * 2,
                             align_y=-self.button_height / 8 * 4 - self.button_height * 2 - self.height / 2,
-                            child=self.menu[menu]['new_password_input'],
+                            child=self.menu[menu]['new_password'],
                         )
                     )
                     self.uimanager[menu].add(
@@ -1274,6 +1482,56 @@ class MainGame(arcade.Window):
                             child=self.menu[menu]['five'],
                         )
                     )
+
+    def set_helper(self):
+        self.helper = {
+            'log_in': {
+                'hello': """Hello, waiter. I'm Chef Victor. Since you're here, it's time to tell you how to use the account.\n
+                            1) To register, enter an username and password and tap on REGISTER-BUTTON.\n
+                            2) If you already have an account, just enter your details and get access to it.\n
+                            3) Don't worry, I'll tell you if something goes wrong.""",
+                'successful': "Welcome to game, ",
+                'incorrect_password': "Hm... You may have entered an incorrect password. Try again.",
+                'error_with_log_in': "Hm... You may have entered an incorrect username. Try again.",
+                'error_with_register': "O, no! A waiter with that name already exists. Try to think of something else.",
+                'help': """ 1) To register, enter an username and password and tap on REGISTER-BUTTON.\n
+                           2) If you already have an account, just enter your details and get access to it.\n
+                           3) Don't worry, I'll tell you if something goes wrong.""",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'information': {
+                'information': "Let's see, what you have!\n",
+                'name': "\tSo,your name is\t\t",
+                'password': "\n\tPassword is\t\t\t",
+                'score': "\n\tHo-ho! Your score is\t",
+                'steps': "\n\tAnd you've run over\t",
+                'final': "\tsteps!\nYou are very good waiter!",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'change_name': {
+                'hello': "So, here you can change your username. To do this, just enter a new username and click confirm",
+                'successful': "All right! Now your name is ",
+                'no': "User with this name is already exist.",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'change_password': {
+                'hello': "So, here you can change your password. To do this, just enter a old and new password and click confirm",
+                'successful': "All right! Now your password is ",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'delete_account': {
+                'hello': "So, here you can delete your account. To do this, just tap on confirm",
+                'error': "Something goes wrong. Try again.",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'leaders_board': {
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'see_all_rating': {
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            }
+            # add / change / delete
+        }
 
 
 # Calling MainGame class

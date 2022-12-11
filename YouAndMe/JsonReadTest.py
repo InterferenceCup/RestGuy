@@ -170,3 +170,32 @@ def SetLastPort(Port):
     Data['last_port'] = Port
     with open('config.json', 'w') as Config:
         json.dump(Data, Config, indent=4)
+
+
+def GetLastPassword():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["last_password"]
+
+
+def GetLastUsername():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["last_username"]
+
+
+def SetLastUsername(Username):
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    Data['last_username'] = Username
+    with open('config.json', 'w') as Config:
+        json.dump(Data, Config, indent=4)
+
+
+def SetLastPassword(Password):
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    Data['last_password'] = Password
+    with open('config.json', 'w') as Config:
+        json.dump(Data, Config, indent=4)
+
