@@ -381,6 +381,32 @@ def do_delete_rating_by_user():
         return "Strange error"
 
 
+@get('/ratings/find/user')  # or @route('/ratings/find/user')
+def find_rating_by_user():
+    return '''
+        <form action="/ratings/find/user" method="post">
+            Username: <input name="username" type="text" />
+            <input value="delete_find_by_user" type="submit" />
+        </form>
+    '''
+
+
+@post('/ratings/find/user')  # or @route('/ratings/find/user', method='POST')
+def do_find_rating_by_user():
+    base = Base.Connect('Base')
+    username = request.forms.get('username')
+    result = Base.FindAllRatingByName(base, username)
+    print(result)
+    base.close()
+    if type(result) != int:
+        text = ''
+        for i in range(len(result)):
+            text = text + result[i][0] + "|"
+        return text
+    else:
+        return "Error"
+
+
 run(host='localhost', port=8080)
 
 # for docker:

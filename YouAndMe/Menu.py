@@ -1,5 +1,8 @@
 import subprocess
+from os import listdir
+from os.path import isfile, join
 
+import PIL.Image
 import requests
 
 import JsonReadTest as Config
@@ -81,6 +84,10 @@ class MainGame(arcade.Window):
         self.player = None
         self.player_console_tread = None
         self.player_text = ''
+
+        self.maps = None
+        self.feedbacks = None
+        self.rating = 1
 
     def on_play_button_click(self, event):
         self.now_menu = 'play'
@@ -231,7 +238,118 @@ class MainGame(arcade.Window):
 
     def on_add_delete_change_button_click(self, event):
         self.now_menu = 'add/delete/change'
+        self.update_maps()
         self.set_manager()
+
+    def update_maps(self):
+        files = [f for f in listdir("Maps/")]
+        payload = {
+            'username': self.name
+        }
+        try:
+            with requests.Session() as s:
+                result = str(s.post('http://localhost:8080/ratings/find/user', data=payload).content.decode())
+            if len(result) != 0:
+                result = result.split(sep="|")
+                result.remove(result[-1])
+                for i in range(len(result)):
+                    result[i] = result[i].lower()
+                self.feedbacks = result
+                for i in range(len(result)):
+                    if result[i] not in files:
+                        files.append(result[i])
+            else:
+                self.feedbacks = None
+            for i in range(len(files)):
+                files[i] = files[i].lower()
+            text = self.helper[self.now_menu]['hello'] + "\n"
+            for i in range(len(files)):
+                text = text + str(i + 1) + ") " + files[i] + "\n"
+            self.menu[self.now_menu]['information'].child.text = text
+            self.maps = files
+        except:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+
+    def on_delete_map_click(self, event):
+        map_name = self.menu[self.now_menu]['map_name_input'].child.text.lower()
+        if map_name in self.maps:
+            if self.feedbacks and map_name in self.feedbacks:
+                payload = {
+                    'username': self.name
+                }
+                try:
+                    with requests.Session() as s:
+                        result = str(s.post('http://localhost:8080/ratings/delete/user', data=payload).content.decode())
+                    if result == "Successful delete.":
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'successful_delete']
+                    else:
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'connection_error']
+                except:
+                    self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+                self.update_maps()
+            else:
+                self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['no_in_feedback']
+        else:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['no_in_maps']
+
+    def on_confirm_rating_click(self, event):
+        map_name = self.menu[self.now_menu]['map_name_input'].child.text.lower()
+        if map_name in self.maps:
+            if self.feedbacks and map_name in self.feedbacks:
+                payload = {
+                    'map': map_name,
+                    'rating': self.rating,
+                    'username': self.name
+                }
+                try:
+                    with requests.Session() as s:
+                        result = str(s.post('http://localhost:8080/ratings/change', data=payload).content.decode())
+                    if result == "Successful added":
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'successful_add']
+                    else:
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'connection_error']
+                except:
+                    self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+                self.update_maps()
+            else:
+                payload = {
+                    'map': map_name,
+                    'rating': self.rating,
+                    'username': self.name
+                }
+                try:
+                    with requests.Session() as s:
+                        result = str(s.post('http://localhost:8080/ratings/add', data=payload).content.decode())
+                    if result == "Successful added":
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'successful_add']
+                    else:
+                        self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu][
+                            'connection_error']
+                except:
+                    self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+                self.update_maps()
+        else:
+            self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['no_in_maps']
+
+    def on_one_tap(self, event):
+        self.rating = 1
+
+    def on_two_tap(self, event):
+        self.rating = 2
+
+    def on_three_tap(self, event):
+        self.rating = 3
+
+    def on_fourth_tap(self, event):
+        self.rating = 4
+
+    def on_five_tap(self, event):
+        self.rating = 5
 
     def on_leaders_board_button_click(self, event):
         self.now_menu = 'leaders_board'
@@ -409,9 +527,17 @@ class MainGame(arcade.Window):
     def setup_menu_labels(self):
         # MAIN MENU
         #   OBJECTS
-        play_button = arcade.gui.UIFlatButton(text="Play",
-                                              width=self.button_width,
-                                              height=self.button_height, )
+        play_button = arcade.gui.UITextureButton(text="Play",
+                                                 width=self.button_width,
+                                                 height=self.button_height,
+                                                 texture=arcade.texture.Texture(
+                                                     name="BNB",
+                                                     image=PIL.Image.open("MenuTextures/ButtonNotBordered.png")
+                                                 ),
+                                                 texture_hovered=arcade.texture.Texture(
+                                                     name="BB",
+                                                     image=PIL.Image.open("MenuTextures/ButtonBordered.png")
+                                                 ))
         exit_button = arcade.gui.UIFlatButton(text="Exit",
                                               width=self.button_width,
                                               height=self.button_height)
@@ -685,6 +811,13 @@ class MainGame(arcade.Window):
                                                                              text_color=arcade.color.WHITE),
                                                  border_width=12,
                                                  border_color=arcade.color.WHITE)
+        rating_information_change = arcade.gui.UIBorder(child=arcade.gui.UITextArea(text="Hello, I'm information",
+                                                                                    width=self.width - self.button_height / 8 * 2 - 12 * 2,
+                                                                                    height=self.height / 2,
+                                                                                    font_name="Kenney Blocks",
+                                                                                    text_color=arcade.color.WHITE),
+                                                        border_width=12,
+                                                        border_color=arcade.color.WHITE)
         map_name_text = arcade.gui.UITextArea(text="Map name",
                                               width=self.button_width * 2,
                                               height=self.button_height / 2,
@@ -720,6 +853,13 @@ class MainGame(arcade.Window):
         # CLICKS
         see_all_rating.on_click = self.on_maps_button_click
         add_delete_change_map_rating.on_click = self.on_add_delete_change_button_click
+        rating_one.on_click = self.on_one_tap
+        rating_two.on_click = self.on_two_tap
+        rating_three.on_click = self.on_three_tap
+        rating_fourth.on_click = self.on_fourth_tap
+        rating_five.on_click = self.on_five_tap
+        confirm_rating.on_click = self.on_confirm_rating_click
+        delete_rating.on_click = self.on_delete_map_click
 
         self.menu = {
             'main_menu': {
@@ -816,7 +956,7 @@ class MainGame(arcade.Window):
                 'back': back_from_log_in,
                 'see_all_rating': see_all_rating,
                 'add/delete/change': add_delete_change_map_rating,
-                'information': rating_information,
+                'information': rating_information_change,
                 'map_name_text': map_name_text,
                 'rating_text': rating_text,
                 'map_name_input': map_name_input,
@@ -1529,8 +1669,15 @@ class MainGame(arcade.Window):
             },
             'see_all_rating': {
                 'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
+            },
+            'add/delete/change': {
+                "hello": "Here you can add, delete or change your feedbacks og maps. To change or add...",
+                'successful_add': "You added a rating!",
+                'successful_delete': "You delete a rating!",
+                'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side.",
+                'no_in_maps': "So, there isn't this map in your game directory or feedback list",
+                'no_in_feedback': "So, there isn't this map in your feedback list"
             }
-            # add / change / delete
         }
 
 

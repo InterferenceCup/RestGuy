@@ -179,6 +179,18 @@ def FindRatingByName(Base, Map, Username):
         return -2
 
 
+def FindAllRatingByName(Base, Username):
+    Cursor = CreateCursor(Base)
+    if Cursor != -2:
+        try:
+            Cursor.execute("SELECT map FROM 'UsersRating' WHERE username = '" + Username + "'")
+            return Cursor.fetchall()
+        except:
+            return -6
+    else:
+        return -2
+
+
 def AddRating(Base, Map, Rating, Username):
     Cursor = CreateCursor(Base)
     if Cursor != -2:
@@ -244,7 +256,6 @@ def DeleteRatingByUser(Base, Username):
             Result = CursorFindMaps.fetchall()
             print(Result)
             for result in Result:
-
                 DeUpdateRating(Base, result[0], result[1])
 
             CursorDelete.execute("DELETE FROM 'UsersRating' WHERE username = '" + Username + "'")
@@ -395,6 +406,8 @@ def DeleteRating(Base, Map):
             return -10
     else:
         return -2
+
+
 '''
 def main():
     Base = Connect("Base")
