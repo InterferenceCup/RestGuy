@@ -9,7 +9,7 @@ import requests
 #   4) register          |  username   |   password   |             |   Successful register.
 #   5) see all users     |             |              |             |   -----------------
 #   6) delete user       |  username   |              |             |   Successful delete.
-#   7) update scores     |  username   |   steps      | orders      |   Successful update.
+#   7) update score      |  username   |   steps      | orders      |   Successful update.
 #   8) see all maps      |             |              |             |   -----------------
 #   9) see all rating    |             |              |             |   -----------------
 #   10) delete rating-m  |  map        |              |             |   Successful delete"
