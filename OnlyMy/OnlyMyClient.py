@@ -309,7 +309,7 @@ def main():
 
     # Socket config
     HOST = socket.gethostbyname(socket.gethostname())
-    PORT = 5000
+    PORT = 6000
 
     # Create Socket
     ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
