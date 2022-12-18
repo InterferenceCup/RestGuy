@@ -1,4 +1,5 @@
 import json
+import os
 from math import trunc
 
 
@@ -199,3 +200,23 @@ def SetLastPassword(Password):
     with open('config.json', 'w') as Config:
         json.dump(Data, Config, indent=4)
 
+
+def WriteName(Name):
+    Data = {
+        "name": Name
+    }
+    with open('Name.json', 'w') as NameFile:
+        json.dump(Data, NameFile, indent=4)
+
+
+def ReadName():
+    with open('Name.json', 'r', encoding='utf-8') as NameFile:
+        Data = json.load(NameFile)
+    os.remove('Name.json')
+    return Data["name"]
+
+
+def ReadPlayer():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["player"]

@@ -30,6 +30,7 @@ class Player:
         self.player_information = 0
         self.player_information_demo = 0
         self.number = number
+        self.name = "Unknown"
 
     def draw(self):
         self.sprite.set_position(self.pos_x, self.pos_y)
@@ -98,6 +99,7 @@ class OtherPlayer:
         self.player_sprite = {}
         self.last = ''
         self.action = ''
+        self.name = "Unknown"
 
     def draw(self):
         self.sprite.set_position(self.pos_x, self.pos_y)
@@ -127,6 +129,8 @@ class Camera:
         self.width_map = width_map
         self.players = []
         self.score = {}
+        self.names = {}
+        self.esc = False
 
     def set_position(self, x, y):
         if not x - self.width / 2 <= 0:
@@ -141,7 +145,7 @@ class Camera:
         self.camera.use()
         delta = 20
         for players in self.players:
-            arcade.draw_text(players + ": " + str(self.score[players]),
+            arcade.draw_text(self.names[players] + ": " + str(self.score[players]),
                              self.camera_x - self.width / 2 + 5,
                              self.camera_y + self.height / 2 - delta,
                              arcade.color.WHITE,
@@ -149,10 +153,40 @@ class Camera:
                              font_name="Kenney Blocks")
             delta += 20
 
+        if self.esc:
+            arcade.draw_rectangle_filled(
+                center_x=self.camera_x,
+                center_y=self.camera_y,
+                color=arcade.color_from_hex_string("d1b591"),
+                width=self.width / 4,
+                height=self.height / 4
+            )
+            arcade.draw_rectangle_outline(
+                center_x=self.camera_x,
+                center_y=self.camera_y,
+                color=arcade.color_from_hex_string("2e2117"),
+                border_width=6,
+                width=self.width / 4,
+                height=self.height / 4
+            )
+            arcade.draw_text("To exit from game tap ENTER. To exit from menu tap ESC",
+                             self.camera_x - self.width / 4 / 2 + 12,
+                             self.camera_y + self.height / 4 / 2 - 6 * 4,
+                             font_name="Kenney Mini Square",
+                             font_size=14,
+                             color=arcade.color_from_hex_string("2e2117"),
+                             width=self.width / 4 - 6*2,
+                             multiline=True
+                             )
+
     def set_score(self, player, score):
         if player not in self.players:
             self.players.append(player)
         self.score[player] = score
+        self.names[player] = player
+
+    def set_name(self, player, name):
+        self.names[player] = name
 
     def plus_score(self, player, score):
         self.score[player] += score
@@ -167,13 +201,15 @@ class TheGame(arcade.Window):
                  playernumber,
                  sock,
                  Map):
-        super().__init__(width, height, title)
+        super().__init__(fullscreen=True, title=title)
 
         arcade.set_background_color(arcade.color.BLACK)
 
-        self.PlayersList = [
-            'Player1'
-        ]
+        self.PlayersList = []
+
+        for i in range(TileMap.ReadPlayer()):
+            self.PlayersList.append("Player" + str(i+1))
+
         self.players = {}
         for players in self.PlayersList:
             if players == playernumber:
@@ -194,7 +230,7 @@ class TheGame(arcade.Window):
         self.tile_map = None
         self.sock = sock
         self.map = Map
-        self.camera = Camera(height, width, TileMap.GetBoards(self.map)[1], TileMap.GetBoards(self.map)[0])
+        self.camera = Camera(self.height, self.width, TileMap.GetBoards(self.map)[1], TileMap.GetBoards(self.map)[0])
         for players in self.PlayersList:
             path = 'PlayersSprites/' + players + '/Animations/'
             if players == playernumber:
@@ -228,6 +264,8 @@ class TheGame(arcade.Window):
             self.camera.set_score(players, 0)
         self.BasePath = None
         self.Path = None
+        self.PathCost = None
+        self.TravelCost = None
         self.Target = None  # I need a place to go to, don't I?
 
     def setup(self, Map):
@@ -266,12 +304,12 @@ class TheGame(arcade.Window):
             )
         if self.Path:
             s = copy.copy(self.Target)
-            while self.Path[s[1]][s[0]] != -1:
+            while type(self.Path[s[1]][s[0]]) != int:
                 e = self.Path[s[1]][s[0]]
                 arcade.draw_line(
                     (s[0] * 64 + 32),
                     (s[1] * 64 + 32),
-                    (e[1] * 64 + 32),
+                    (e[1] * 64 + 32),   # BAG
                     (e[0] * 64 + 32),
                     [128, 0, 0],
                     7
@@ -287,7 +325,10 @@ class TheGame(arcade.Window):
 
         for players in self.PlayersList:
             if players == self.player.number:
-                arcade.draw_text(self.player.number,
+                name = players
+                if self.player.name != "Unknown" and self.player.name:
+                    name = self.player.name
+                arcade.draw_text(name,
                                  self.player.pos_x + 2,
                                  self.player.pos_y + 38,
                                  arcade.color.WHITE,
@@ -295,7 +336,10 @@ class TheGame(arcade.Window):
                                  font_name="Kenney Blocks",
                                  anchor_x='center')
             else:
-                arcade.draw_text(players,
+                name = players
+                if self.players[players].name != "Unknown":
+                    name = self.players[players].name
+                arcade.draw_text(name,
                                  self.players[players].pos_x + 2,
                                  self.players[players].pos_y + 38,
                                  arcade.color.WHITE,
@@ -328,10 +372,14 @@ class TheGame(arcade.Window):
                     self.player.set_position(Data[players]['X'], Data[players]['Y'])
                     self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
                     self.camera.set_score(players, Data[self.player.number]['SCORE'])
+                    self.player.name = Data[self.player.number]['name']
                 else:
                     self.players[players].set_position(Data[players]['X'], Data[players]['Y'])
                     self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
                     self.camera.set_score(players, Data[players]['SCORE'])
+                    self.players[players].name = Data[players]['name']
+                if Data[players]['name'] != "Unknown":
+                    self.camera.set_name(players, Data[players]['name'])
         else:
             for players in self.PlayersList:
                 if players == self.player.number:
@@ -355,24 +403,66 @@ class TheGame(arcade.Window):
 
         # Pathfinding time!
         self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
-        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+        self.PathCost = copy.deepcopy(self.BasePath)  # Reset tile costs board
+        self.TravelCost = copy.deepcopy(self.BasePath)  # Reset full path costs board
         q = queue.Queue()  # BFS main queue
+        for players in self.PlayersList:
+            if players != self.player.number:
+                v = TileMap.GetTile(self.players[players].pos_x, self.players[players].pos_y,
+                                    64)  # Get other player's position
+                q.put(v)
+                self.PathCost[v[1]][v[0]] = 16
+                while not q.empty():
+                    v = q.get()
+                    if self.PathCost[v[1] - 1][v[0]] == 1:  # DOWN
+                        self.PathCost[v[1] - 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1] - 1][v[0]] > 1:
+                            q.put([v[0], v[1] - 1])
+                    if self.PathCost[v[1]][v[0] - 1] == 1:  # LEFT
+                        self.PathCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1]][v[0] - 1] > 1:
+                            q.put([v[0] - 1, v[1]])
+                    if self.PathCost[v[1] + 1][v[0]] == 1:  # UP
+                        self.Path[v[1] + 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                        if self.Path[v[1] + 1][v[0]] > 1:
+                            q.put([v[0], v[1] + 1])
+                    if self.PathCost[v[1]][v[0] + 1] == 1:  # RIGHT
+                        self.PathCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1]][v[0] + 1] > 1:
+                            q.put([v[0] + 1, v[1]])
+        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
         q.put(v)
         self.Path[v[1]][v[0]] = -1
         while not q.empty():
             v = q.get()
-            if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
-                q.put([v[0], v[1] - 1])
+            if self.Path[v[1] - 1][v[0]] != -1 and (  # DOWN
+                    self.TravelCost[v[1] - 1][v[0]] == 1 or
+                    self.TravelCost[v[1] - 1][v[0]] > self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
-            if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
-                q.put([v[0] - 1, v[1]])
+                self.TravelCost[v[1] - 1][v[0]] = self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0], v[1] - 1])
+            if self.Path[v[1]][v[0] - 1] != -1 and (  # LEFT
+                    self.TravelCost[v[1]][v[0] - 1] == 1 or
+                    self.TravelCost[v[1]][v[0] - 1] > self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
-            if self.Path[v[1] + 1][v[0]] == 1:  # UP
-                q.put([v[0], v[1] + 1])
+                self.TravelCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0] - 1, v[1]])
+            if self.Path[v[1] + 1][v[0]] != -1 and (  # UP
+                    self.TravelCost[v[1] + 1][v[0]] == 1 or
+                    self.TravelCost[v[1] + 1][v[0]] > self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
-            if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
-                q.put([v[0] + 1, v[1]])
+                self.TravelCost[v[1] + 1][v[0]] = self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0], v[1] + 1])
+            if self.Path[v[1]][v[0] + 1] != -1 and (  # RIGHT
+                    self.TravelCost[v[1]][v[0] + 1] == 1 or
+                    self.TravelCost[v[1]][v[0] + 1] > self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
+                self.TravelCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0] + 1, v[1]])
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
@@ -393,12 +483,21 @@ class TheGame(arcade.Window):
             self.player.set_information(5, 0)
         elif key == arcade.key.DOWN or key == arcade.key.S:
             self.player.set_information(4, 0)
+        elif key == arcade.key.ESCAPE:
+            if self.camera.esc:
+                self.camera.esc = False
+            else:
+                self.camera.esc = True
+        elif key == arcade.key.ENTER:
+            if self.camera.esc:
+                self.close()
 
 
 def main():
     # Window config
     Window = TileMap.GetConfig("config")
-
+    Name = TileMap.ReadName()
+    print(Name)
     while True:
         try:
             # Socket config
@@ -443,6 +542,7 @@ def main():
 
             # Listen map
             Map = Client.DynamicRecv(ClientSock).decode('utf-8')
+            Client.DynamicSend(ClientSock, Name.encode('utf-8'))
             break
         except:
             print('')

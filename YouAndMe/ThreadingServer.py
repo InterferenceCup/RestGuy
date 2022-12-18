@@ -223,12 +223,11 @@ class Server:
         self.lobby_server.bind((self.lobby_host, self.lobby_port))  # Bind of socket
 
         # Init players
-        self.players = {
-            'Player1': self.create_players(352, 928)
-        }
-        self.player_list = [
-            'Player1'
-        ]
+        self.players = {}
+        self.player_list = []
+        for i in range(TileMap.ReadPlayer()):
+            self.player_list.append("Player" + str(i + 1))
+            self.players["Player" + str(i + 1)] = self.create_players(352, 928)
 
         # Init server
         self.clients = {}
@@ -246,7 +245,8 @@ class Server:
             'Y': Y,
             'SPRITE': 'Down',
             'ACTION': 'Static',
-            'SCORE': 0
+            'SCORE': 0,
+            'name': 'Unknown'
         }
         return PlayerInformation
 
@@ -275,6 +275,9 @@ class Server:
                 if server.DynamicSend(self.servers[player].client, self.map.encode('utf-8')) != 0:  # Send map
                     print("\t - Reconnecting")
                     continue
+                name = server.DynamicRecv(self.servers[player].client)
+                if name != None:
+                    self.players[player]["name"] = name.decode('utf-8')
                 self.servers[player].using = True
                 print("\t - Data was send")
                 break

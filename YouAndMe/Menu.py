@@ -246,6 +246,8 @@ class MainGame(arcade.Window):
                 text = '------LEADERS BOARD------\n'
                 for i in range(len(result) - 1):
                     result[i] = result[i].split(sep='-')
+                result = self.sorting(result, 1)
+                for i in range(len(result) - 1):
                     text = text + str(i + 1) + ')        ' + result[i][0].strip() + '        with rating        ' + str(
                         result[i][1].strip()) + '        and number of feedbacks        ' + str(
                         result[i][2].strip()) + '\n'
@@ -404,6 +406,8 @@ class MainGame(arcade.Window):
             text = '------LEADERS BOARD------\n'
             for i in range(len(result) - 1):
                 result[i] = result[i].split(sep='-')
+            result = self.sorting(result, 2)
+            for i in range(len(result) - 1):
                 text = text + str(i + 1) + ')        ' + result[i][0].strip() + '        with score        ' + str(
                     result[i][2].strip()) + '\n'
             self.menu[self.now_menu]['leaders_board'].child.text = text
@@ -488,6 +492,7 @@ class MainGame(arcade.Window):
     def on_host_button_click(self, event):
         self.now_menu = 'host'
         self.set_manager()
+        Config.WriteName(self.name)
         if self.host == None:
             self.host = subprocess.Popen(['python', 'ThreadingServer.py'],
                                          stdout=subprocess.PIPE,
@@ -502,6 +507,7 @@ class MainGame(arcade.Window):
 
     def on_connect_to_host_button_click(self, event):
         if self.player == None:
+            Config.WriteName(self.name)
             Config.SetLastIp(self.menu['player']['ip_input'].child.text)
             Config.SetLastPort(self.menu['player']['port_input'].child.text)
             self.player = subprocess.Popen(['python', 'YouAndMePlayerClient.py'],
@@ -520,6 +526,20 @@ class MainGame(arcade.Window):
                 self.player_text = self.player_text + output
         print("Stop reading")
 
+    def sorting(self, massive, num):
+        copy = []
+        for _ in range(len(massive) - 1):
+            for i in range(len(massive) - 2):
+                if int(massive[i][num].split(sep='.')[0]) < int(massive[i + 1][num].split(sep='.')[0]):
+                    for j in range(len(massive[i])):
+                        copy.append(massive[i][j])
+                    for j in range(len(massive[i])):
+                        massive[i][j] = massive[i+1][j]
+                    for j in range(len(massive[i])):
+                        massive[i+1][j] = copy[j]
+                    copy = []
+        return massive
+
     def host_console(self):
         self.host_text = "---HOST OUTPUT---\n"
         while True and self.host:
@@ -530,12 +550,15 @@ class MainGame(arcade.Window):
         print("Stop reading")
 
     def host_player_console(self):
-        self.host_player_text = "---HOST PLAYER OUTPUT---\n"
-        while True and self.host_player:
-            output = self.host_player.stdout.readline().decode()
-            if output != None and self.host_player_text != None:
-                print(output)
-                self.host_player_text = self.host_player_text + output
+        try:
+            self.host_player_text = "---HOST PLAYER OUTPUT---\n"
+            while True and self.host_player:
+                output = self.host_player.stdout.readline().decode()
+                if output != None and self.host_player_text != None:
+                    print(output)
+                    self.host_player_text = self.host_player_text + output
+        except:
+            print("Stop reading")
         print("Stop reading")
 
     # Creating on_draw() function to draw on the screen
@@ -1793,7 +1816,7 @@ class MainGame(arcade.Window):
                 'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side."
             },
             'add/delete/change': {
-                "hello": "Here you can add, delete or change your feedbacks og maps. To change or add...",
+                "hello": "Here you can add, delete or change your feedbacks og maps. To change or add rating you must write map name to input block, click on star and tap on confirm-button. To delete you must write map name and tap on delete-button. List of maps you can use:\n",
                 'successful_add': "You added a rating!",
                 'successful_delete': "You delete a rating!",
                 'connection_error': "Oh... It seems the connection is broken. The problem can be both on your side and on our side.",
