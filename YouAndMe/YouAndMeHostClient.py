@@ -3,13 +3,11 @@ import queue
 import random
 import sys
 import socket
-import time
 
 import arcade
 import pickle
 import ServerFunctions as Client
 import JsonReadTest as TileMap
-
 
 
 class Player:
@@ -174,8 +172,7 @@ class TheGame(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
 
         self.PlayersList = [
-            'Player1',
-            'Player2'
+            'Player1'
         ]
         self.players = {}
         for players in self.PlayersList:

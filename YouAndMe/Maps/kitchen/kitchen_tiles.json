@@ -1,0 +1,15 @@
+{
+    "columns": 20,
+    "image": "kitchen.png",
+    "imageheight": 1280,
+    "imagewidth": 1280,
+    "margin": 0,
+    "name": "kitchen_tiles",
+    "spacing": 0,
+    "tilecount": 400,
+    "tiledversion": "1.9.2",
+    "tileheight": 64,
+    "tilewidth": 64,
+    "type": "tileset",
+    "version": "1.9"
+}

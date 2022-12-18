@@ -208,7 +208,7 @@ class Server:
 
     def __init__(self):
         # Map config
-        self.map = 'Dungeon_map_1'
+        self.map = 'kitchen'
         self.walls = TileMap.ReadJson(self.map)
         self.tile_scale = TileMap.GetTileScale(self.map)
 
@@ -224,12 +224,10 @@ class Server:
 
         # Init players
         self.players = {
-            'Player1': self.create_players(352, 928),
-            'Player2': self.create_players(352, 928)
+            'Player1': self.create_players(352, 928)
         }
         self.player_list = [
-            'Player1',
-            'Player2'
+            'Player1'
         ]
 
         # Init server

@@ -172,7 +172,9 @@ class TheGame(arcade.Window):
 
         self.PlayersList = [
             'Player1',
-            'Player2'
+            'Player2',
+            'Player3',
+            'Player4'
         ]
         self.players = {}
         for players in self.PlayersList:
@@ -228,6 +230,8 @@ class TheGame(arcade.Window):
             self.camera.set_score(players, 0)
         self.BasePath = None
         self.Path = None
+        self.PathCost = None
+        self.TravelCost = None
         self.Target = None  # I need a place to go to, don't I?
 
     def setup(self, Map):
@@ -356,24 +360,66 @@ class TheGame(arcade.Window):
 
         # Pathfinding time!
         self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
-        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+        self.PathCost = copy.deepcopy(self.BasePath)  # Reset tile costs board
+        self.TravelCost = copy.deepcopy(self.BasePath)  # Reset full path costs board
         q = queue.Queue()  # BFS main queue
+        for players in self.PlayersList:
+            if players != self.player.number:
+                v = TileMap.GetTile(self.players[players].pos_x, self.players[players].pos_y,
+                                    64)  # Get other player's position
+                q.put(v)
+                self.PathCost[v[1]][v[0]] = 16
+                while not q.empty():
+                    v = q.get()
+                    if self.PathCost[v[1] - 1][v[0]] == 1:  # DOWN
+                        self.PathCost[v[1] - 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1] - 1][v[0]] > 1:
+                            q.put([v[0], v[1] - 1])
+                    if self.PathCost[v[1]][v[0] - 1] == 1:  # LEFT
+                        self.PathCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1]][v[0] - 1] > 1:
+                            q.put([v[0] - 1, v[1]])
+                    if self.PathCost[v[1] + 1][v[0]] == 1:  # UP
+                        self.Path[v[1] + 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                        if self.Path[v[1] + 1][v[0]] > 1:
+                            q.put([v[0], v[1] + 1])
+                    if self.PathCost[v[1]][v[0] + 1] == 1:  # RIGHT
+                        self.PathCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0]] / 4
+                        if self.PathCost[v[1]][v[0] + 1] > 1:
+                            q.put([v[0] + 1, v[1]])
+        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
         q.put(v)
         self.Path[v[1]][v[0]] = -1
         while not q.empty():
             v = q.get()
-            if self.Path[v[1] - 1][v[0]] == 1:  # DOWN
-                q.put([v[0], v[1] - 1])
+            if self.Path[v[1] - 1][v[0]] != -1 and (  # DOWN
+                    self.TravelCost[v[1] - 1][v[0]] == 1 or
+                    self.TravelCost[v[1] - 1][v[0]] > self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
-            if self.Path[v[1]][v[0] - 1] == 1:  # LEFT
-                q.put([v[0] - 1, v[1]])
+                self.TravelCost[v[1] - 1][v[0]] = self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0], v[1] - 1])
+            if self.Path[v[1]][v[0] - 1] != -1 and (  # LEFT
+                    self.TravelCost[v[1]][v[0] - 1] == 1 or
+                    self.TravelCost[v[1]][v[0] - 1] > self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
-            if self.Path[v[1] + 1][v[0]] == 1:  # UP
-                q.put([v[0], v[1] + 1])
+                self.TravelCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0] - 1, v[1]])
+            if self.Path[v[1] + 1][v[0]] != -1 and (  # UP
+                    self.TravelCost[v[1] + 1][v[0]] == 1 or
+                    self.TravelCost[v[1] + 1][v[0]] > self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
-            if self.Path[v[1]][v[0] + 1] == 1:  # RIGHT
-                q.put([v[0] + 1, v[1]])
+                self.TravelCost[v[1] + 1][v[0]] = self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0], v[1] + 1])
+            if self.Path[v[1]][v[0] + 1] != -1 and (  # RIGHT
+                    self.TravelCost[v[1]][v[0] + 1] == 1 or
+                    self.TravelCost[v[1]][v[0] + 1] > self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][
+                        v[0]]):
                 self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
+                self.TravelCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][v[0]]
+                q.put([v[0] + 1, v[1]])
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
