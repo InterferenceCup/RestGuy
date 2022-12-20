@@ -130,7 +130,7 @@ def ReadNewLayers(JsonName):
     return Layers
 
 
-def CreateConfig(JsonName, Layers):
+def CreateConfig(JsonName, Layers, Tables):
     Config = {
         "layers": [],
         "scale": 1,
@@ -138,7 +138,8 @@ def CreateConfig(JsonName, Layers):
         "config": {
             "map_width": Layers[0]["width"] * 64,
             "map_height": Layers[0]["height"] * 64
-        }
+        },
+        "tables": Tables
     }
 
     Matrix = Layers[1]["data"]
@@ -159,6 +160,28 @@ def CreateConfig(JsonName, Layers):
     PrintFileConfig(JsonName, Config)
 
 
+def CreateTables(Layers):
+    Layer = None
+    for layer in Layers:
+        if layer["name"] == "Tables":
+            Layer = layer
+    Tables = []
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                Tables.append({
+                    'x': w,
+                    'y': Width - 1 - h,
+                    'delta_x': 0,
+                    'delta_y': 0
+                })
+
+    return Tables
+
+
 def main():
     # INPUT
     print("EnterMapName: ", end="")
@@ -167,6 +190,10 @@ def main():
     # FIRST CREATION
     CopyAll(JsonName)
     Layers = ReadLayers(JsonName)
+    Tables = CreateTables(Layers)
+    for i in range(len(Layers)):
+        if Layers[i]["name"] == "Tables":
+            Layers.pop(i)
     # NewLayers = Splitting(JsonName, Layers)
     File = ReadAllFile(JsonName)
     PrintFile(JsonName, File)
@@ -174,7 +201,7 @@ def main():
     # Crop("Maps/" + JsonName + "/Sprite", JsonName, 64, 64)
 
     # SECOND CREATION
-    CreateConfig(JsonName, Layers)
+    CreateConfig(JsonName, Layers, Tables)
 
 
 main()
