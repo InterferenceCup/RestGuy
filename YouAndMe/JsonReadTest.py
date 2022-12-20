@@ -220,3 +220,13 @@ def ReadPlayer():
     with open('config.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return Data["player"]
+
+def GetObjects(Map):
+    with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["objects"]
+
+def GetTables(Map):
+    with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["tables"]

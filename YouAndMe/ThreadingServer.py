@@ -2,8 +2,65 @@ import random
 from threading import Thread
 import socket
 import pickle
+
+import arcade
+
 import JsonReadTest as TileMap
 import ServerFunctions as server
+
+
+class Ingredient:
+    def __init__(self, coordinates, delta, texture):
+        self.x = coordinates[0]
+        self.y = coordinates[1]
+        self.delta_x = delta[0]
+        self.delta_y = delta[1]
+        self.texture = texture
+
+    def coordinates(self):
+        return [self.x, self.y]
+
+    def target(self):
+        return [self.x + self.delta_x, self.y + self.delta_y]
+
+
+class Recept:
+    def __init__(self, ingredients, texture):
+        self.ingredients = []
+        for ingredient in ingredients:
+            self.ingredients.append(ingredient)
+        self.texture = texture
+        self.stage = 0
+
+    def get_ingredient(self):
+        return self.ingredients[self.stage]
+
+    def up_stage(self):
+        self.stage += 1
+
+    def is_it_ready(self):
+        if self.stage == len(self.ingredients):
+            return True
+        else:
+            return False
+
+
+class Order:
+    def __init__(self, coordinates, delta, recept, table):
+        self.x = coordinates[0]
+        self.y = coordinates[1]
+        self.delta_x = delta[0]
+        self.delta_y = delta[1]
+        self.recept = recept
+        self.stage = "getting"
+        self.table = table
+        self.texture = "recept"
+
+    def coordinates(self):
+        return [self.x, self.y]
+
+    def target(self):
+        return [self.x + self.delta_x, self.y + self.delta_y]
 
 
 # Get information
@@ -211,6 +268,8 @@ class Server:
         self.map = 'kitchen'
         self.walls = TileMap.ReadJson(self.map)
         self.tile_scale = TileMap.GetTileScale(self.map)
+        self.tables = TileMap.GetTables(self.map)
+        self.order = self.create_pizza()
 
         # Lobby Config
         self.lobby_host = socket.gethostbyname(socket.gethostname())
@@ -239,6 +298,7 @@ class Server:
         for players in self.player_list:
             print("\t - " + players)
 
+
     def create_players(self, X, Y):
         PlayerInformation = {
             'X': X,
@@ -246,7 +306,10 @@ class Server:
             'SPRITE': 'Down',
             'ACTION': 'Static',
             'SCORE': 0,
-            'name': 'Unknown'
+            'name': 'Unknown',
+            'target': self.order.target(),
+            'item': None,
+            'order': self.order.target()
         }
         return PlayerInformation
 
@@ -314,11 +377,38 @@ class Server:
                     data = str(self.servers[player].information)
                 else:
                     self.servers[player].using = True
-                # If action is normal
+                    # If action is normal
 
                     information = int(data)  # Read action
                     if GetInformation(information, 0, 1):
-                        self.players[player]['SCORE'] += 1
+                        tile = TileMap.GetTile(self.players[player]['X'], self.players[player]['Y'], 64)
+                        target = self.players[player]['target']
+                        if tile[0] == target[0] and tile[1] == target[1]:
+                            if self.order.stage == "getting":
+                                self.order.stage = "cooking"
+                                self.players[player]["target"] = self.order.recept.get_ingredient().target()
+                                self.players[player]["item"] = self.order.texture
+                                self.players[player]["order"] = None
+                            elif self.order.stage == "cooking":
+                                self.players[player]["item"] = self.order.recept.get_ingredient().texture
+                                self.order.recept.up_stage()
+                                self.players[player]["target"] = self.order.table.target()
+                                self.order.stage = "bowl"
+                            elif self.order.stage == "bowl":
+                                if not self.order.recept.is_it_ready():
+                                    self.players[player]["item"] = None
+                                    self.players[player]["target"] = self.order.recept.get_ingredient().target()
+                                    self.order.stage = "cooking"
+                                else:
+                                    self.players[player]["item"] = self.order.recept.texture
+                                    self.order.stage = "giving"
+                                    self.players[player]["target"] = self.order.target()
+                            elif self.order.stage == "giving":
+                                self.players[player]['SCORE'] += 1
+                                self.order = self.create_pizza()
+                                self.players[player]["target"] = self.order.target()
+                                self.players[player]["item"] = None
+                                self.players[player]["order"] = self.order.target()
                         information -= 1
                     # If action is not right
                     if information == 192:
@@ -368,6 +458,17 @@ class Server:
                     break
                 else:
                     print("Server is blocked")
+
+    def create_pizza(self):
+        ingredients = [Ingredient([3, 5], [0, -1], "cheese"),
+                       Ingredient([5, 5], [0, -1], "meat"),
+                       Ingredient([1, 6], [0, -1], "ketchup")]
+        recept = Recept(ingredients, "pizza")
+        config = random.choice(self.tables)
+        table = Ingredient([8, 5], [-1, 0], "bowl")
+        order = Order([config['x'], config['y']], [config['delta_x'], config['delta_y']], recept, table)
+        return order
+
 
 
 def main():
