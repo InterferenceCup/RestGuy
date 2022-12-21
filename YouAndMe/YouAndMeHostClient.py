@@ -327,20 +327,20 @@ class TheGame(arcade.Window):
                 12,
                 [128, 0, 0]  # that means red (maroon actually)
             )
-        if self.Path:
-            s = copy.copy(self.Target)
-            while type(self.Path[s[1]][s[0]]) != int:
-                e = self.Path[s[1]][s[0]]
-                arcade.draw_line(
-                    (s[0] * 64 + 32),
-                    (s[1] * 64 + 32),
-                    (e[1] * 64 + 32),  # BAG
-                    (e[0] * 64 + 32),
-                    [128, 0, 0],
-                    7
-                )
-                s[0] = e[1]
-                s[1] = e[0]
+            if self.Path:
+                s = copy.copy(self.Target)
+                while type(self.Path[s[1]][s[0]]) != int:
+                    e = self.Path[s[1]][s[0]]
+                    arcade.draw_line(
+                        (s[0] * 64 + 32),
+                        (s[1] * 64 + 32),
+                        (e[1] * 64 + 32),  # BAG
+                        (e[0] * 64 + 32),
+                        [128, 0, 0],
+                        7
+                    )
+                    s[0] = e[1]
+                    s[1] = e[0]
 
         for players in self.PlayersList:
             if players != self.player.number:

@@ -3,6 +3,7 @@ import queue
 import random
 import sys
 import socket
+import time
 
 import arcade
 import pickle
@@ -123,8 +124,12 @@ class Camera:
         self.height = height
         self.width = width
         self.camera = arcade.Camera(width, height)
-        self.camera_x = self.height / 2
-        self.camera_y = self.width / 2
+        self.c = 2
+        self.static_x = False
+        if self.width / self.c * 2 > width_map:
+            self.static_x = True
+        self.camera_x = self.height / self.c
+        self.camera_y = self.width / self.c
         self.height_map = height_map
         self.width_map = width_map
         self.players = []
@@ -132,14 +137,27 @@ class Camera:
         self.names = {}
         self.esc = False
 
+        if self.camera_x + self.width > self.width_map:
+            self.camera_x = self.width_map - self.width / self.c
+        elif self.camera_x < 0:
+            self.camera_x = 0
+
+        if self.camera_y + self.height > self.height_map:
+            self.camera_y = self.height_map - self.height / self.c
+        elif self.camera_y < 0:
+            self.camera_y = 0
+
     def set_position(self, x, y):
-        if not x - self.width / 2 <= 0:
-            if not x + self.width / 2 >= self.width_map:
-                self.camera_x = x
-        if not y - self.height / 2 <= 0:
-            if not y + self.height / 2 >= self.height_map:
+        if not self.static_x:
+            if not x - self.width / self.c <= 0:
+                if not x + self.width / self.c >= self.width_map:
+                    self.camera_x = x
+        else:
+            self.camera_x = self.width_map / self.c
+        if not y - self.height / self.c <= 0:
+            if not y + self.height / self.c >= self.height_map:
                 self.camera_y = y
-        self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
+        self.camera.move([self.camera_x - self.width / self.c, self.camera_y - self.height / self.c])
 
     def draw(self):
         self.camera.use()
@@ -201,7 +219,7 @@ class TheGame(arcade.Window):
                  playernumber,
                  sock,
                  Map):
-        super().__init__( title=title)
+        super().__init__(fullscreen=True, title=title)
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -273,6 +291,7 @@ class TheGame(arcade.Window):
 
         self.products = TileMap.GetObjects(self.map)
         self.bowls = TileMap.GetBowls(self.map)
+        self.end = False
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -308,20 +327,20 @@ class TheGame(arcade.Window):
                 12,
                 [128, 0, 0]  # that means red (maroon actually)
             )
-        if self.Path:
-            s = copy.copy(self.Target)
-            while type(self.Path[s[1]][s[0]]) != int:
-                e = self.Path[s[1]][s[0]]
-                arcade.draw_line(
-                    (s[0] * 64 + 32),
-                    (s[1] * 64 + 32),
-                    (e[1] * 64 + 32),  # BAG
-                    (e[0] * 64 + 32),
-                    [128, 0, 0],
-                    7
-                )
-                s[0] = e[1]
-                s[1] = e[0]
+            if self.Path:
+                s = copy.copy(self.Target)
+                while type(self.Path[s[1]][s[0]]) != int:
+                    e = self.Path[s[1]][s[0]]
+                    arcade.draw_line(
+                        (s[0] * 64 + 32),
+                        (s[1] * 64 + 32),
+                        (e[1] * 64 + 32),  # BAG
+                        (e[0] * 64 + 32),
+                        [128, 0, 0],
+                        7
+                    )
+                    s[0] = e[1]
+                    s[1] = e[0]
 
         for players in self.PlayersList:
             if players != self.player.number:
@@ -361,7 +380,6 @@ class TheGame(arcade.Window):
             else:
                 self.Effect.draw()
 
-
         for players in self.PlayersList:
             if players == self.player.number:
                 name = players
@@ -386,135 +404,173 @@ class TheGame(arcade.Window):
                                  font_name="Kenney Blocks",
                                  anchor_x='center')
 
+        if self.end:
+            arcade.draw_rectangle_filled(
+                center_x=self.camera.camera_x,
+                center_y=self.camera.camera_y,
+                color=arcade.color_from_hex_string("d1b591"),
+                width=self.camera.width / 4,
+                height=self.camera.height / 4
+            )
+            arcade.draw_rectangle_outline(
+                center_x=self.camera.camera_x,
+                center_y=self.camera.camera_y,
+                color=arcade.color_from_hex_string("2e2117"),
+                border_width=6,
+                width=self.camera.width / 4,
+                height=self.camera.height / 4
+            )
+            arcade.draw_text("Game has end",
+                             self.camera.camera_x - self.camera.width / 4 / 2 + 12,
+                             self.camera.camera_y + self.camera.height / 4 / 2 - 6 * 4,
+                             font_name="Kenney Mini Square",
+                             font_size=14,
+                             color=arcade.color_from_hex_string("2e2117"),
+                             width=self.camera.width / 4 - 6 * 2,
+                             multiline=True
+                             )
+            delta = 20
+            for players in self.camera.players:
+                arcade.draw_text(self.camera.names[players] + ": " + str(self.camera.score[players]),
+                                 self.camera.camera_x - self.camera.width / 4 / 2 + 12,
+                                 self.camera.camera_y + self.camera.height / 4 / 2 - 6 * 4 - delta,
+                                 color=arcade.color_from_hex_string("2e2117"),
+                                 font_size=14,
+                                 font_name="Kenney Mini Square")
+                delta += 20
+
         self.camera.draw()
 
     def update(self, delta_time):
         for players in self.PlayersList:
-            if players == self.player.number:
-                if self.player.action != 'Static':
-                    self.player.sprite.update_animation()
-            else:
-                if self.players[players].action != 'Static':
-                    self.players[players].sprite.update_animation()
-
-
-        Client.DynamicSend(self.sock, str(self.player.player_information).encode())
-
-        try:
-            Data = pickle.loads(Client.DynamicRecv(self.sock))
-        except:
-            Data = None
-
-        if Data != None:
-            self.camera.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
+            if self.camera.score[players] == 1:
+                self.end = True
+        if not self.end:
             for players in self.PlayersList:
                 if players == self.player.number:
-                    self.player.set_position(Data[players]['X'], Data[players]['Y'])
-                    self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
-                    self.camera.set_score(players, Data[self.player.number]['SCORE'])
-                    self.player.name = Data[self.player.number]['name']
+                    if self.player.action != 'Static':
+                        self.player.sprite.update_animation()
                 else:
-                    self.players[players].set_position(Data[players]['X'], Data[players]['Y'])
-                    self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
-                    self.camera.set_score(players, Data[players]['SCORE'])
-                    self.players[players].name = Data[players]['name']
-                if Data[players]['name'] != "Unknown":
-                    self.camera.set_name(players, Data[players]['name'])
-            self.Target = Data[self.player.number]['target']
-            if Data[self.player.number]['item'] != "effect":
-                self.Item = Data[self.player.number]['item']
-            else:
-                if not self.Effect:
-                    self.Effect = arcade.load_animated_gif("Sprites/effect.gif")
+                    if self.players[players].action != 'Static':
+                        self.players[players].sprite.update_animation()
+
+            Client.DynamicSend(self.sock, str(self.player.player_information).encode())
+
+            try:
+                Data = pickle.loads(Client.DynamicRecv(self.sock))
+            except:
+                Data = None
+
+            if Data != None:
+                self.camera.set_position(Data[self.player.number]['X'], Data[self.player.number]['Y'])
+                for players in self.PlayersList:
+                    if players == self.player.number:
+                        self.player.set_position(Data[players]['X'], Data[players]['Y'])
+                        self.player.set_sprite(Data[self.player.number]['SPRITE'], Data[self.player.number]['ACTION'])
+                        self.camera.set_score(players, Data[self.player.number]['SCORE'])
+                        self.player.name = Data[self.player.number]['name']
+                    else:
+                        self.players[players].set_position(Data[players]['X'], Data[players]['Y'])
+                        self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
+                        self.camera.set_score(players, Data[players]['SCORE'])
+                        self.players[players].name = Data[players]['name']
+                    if Data[players]['name'] != "Unknown":
+                        self.camera.set_name(players, Data[players]['name'])
+                self.Target = Data[self.player.number]['target']
+                if Data[self.player.number]['item'] != "effect":
                     self.Item = Data[self.player.number]['item']
-            self.Order = Data[self.player.number]['order']
-        else:
+                else:
+                    if not self.Effect:
+                        self.Effect = arcade.load_animated_gif("Sprites/effect.gif")
+                        self.Item = Data[self.player.number]['item']
+                self.Order = Data[self.player.number]['order']
+            else:
+                for players in self.PlayersList:
+                    if players == self.player.number:
+                        self.player.set_sprite(self.player.last, '')
+                    else:
+                        self.players[players].set_sprite(self.players[players].last, '')
+
             for players in self.PlayersList:
                 if players == self.player.number:
-                    self.player.set_sprite(self.player.last, '')
+                    self.player.get_sprite()
+                    self.player.set_information(0, 0)
                 else:
-                    self.players[players].set_sprite(self.players[players].last, '')
+                    self.players[players].get_sprite()
 
-        for players in self.PlayersList:
-            if players == self.player.number:
-                self.player.get_sprite()
-                self.player.set_information(0, 0)
-            else:
-                self.players[players].get_sprite()
+            if self.Effect:
+                self.Effect.update_animation()
+                self.Effect.set_position(self.player.pos_x, self.player.pos_y + 72)
 
-        if self.Effect:
-            self.Effect.update_animation()
-            self.Effect.set_position(self.player.pos_x, self.player.pos_y + 72)
+            '''# Setting a Target
+            if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
+                self.player.plus_information(0, 1)
+                self.Target = [random.randint(1, 28), random.randint(1, 28)]
+                while self.BasePath[self.Target[1]][self.Target[0]] == -1:
+                    self.Target = [random.randint(1, 28), random.randint(1, 28)]'''
 
-        '''# Setting a Target
-        if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
-            self.player.plus_information(0, 1)
-            self.Target = [random.randint(1, 28), random.randint(1, 28)]
-            while self.BasePath[self.Target[1]][self.Target[0]] == -1:
-                self.Target = [random.randint(1, 28), random.randint(1, 28)]'''
-
-        # Pathfinding time!
-        self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
-        self.PathCost = copy.deepcopy(self.BasePath)  # Reset tile costs board
-        self.TravelCost = copy.deepcopy(self.BasePath)  # Reset full path costs board
-        q = queue.Queue()  # BFS main queue
-        for players in self.PlayersList:
-            if players != self.player.number:
-                v = TileMap.GetTile(self.players[players].pos_x, self.players[players].pos_y,
-                                    64)  # Get other player's position
-                q.put(v)
-                self.PathCost[v[1]][v[0]] = 16
-                while not q.empty():
-                    v = q.get()
-                    if self.PathCost[v[1] - 1][v[0]] == 1:  # DOWN
-                        self.PathCost[v[1] - 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
-                        if self.PathCost[v[1] - 1][v[0]] > 1:
-                            q.put([v[0], v[1] - 1])
-                    if self.PathCost[v[1]][v[0] - 1] == 1:  # LEFT
-                        self.PathCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0]] / 4
-                        if self.PathCost[v[1]][v[0] - 1] > 1:
-                            q.put([v[0] - 1, v[1]])
-                    if self.PathCost[v[1] + 1][v[0]] == 1:  # UP
-                        self.Path[v[1] + 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
-                        if self.Path[v[1] + 1][v[0]] > 1:
-                            q.put([v[0], v[1] + 1])
-                    if self.PathCost[v[1]][v[0] + 1] == 1:  # RIGHT
-                        self.PathCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0]] / 4
-                        if self.PathCost[v[1]][v[0] + 1] > 1:
-                            q.put([v[0] + 1, v[1]])
-        v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
-        q.put(v)
-        self.Path[v[1]][v[0]] = -1
-        while not q.empty():
-            v = q.get()
-            if self.Path[v[1] - 1][v[0]] != -1 and (  # DOWN
-                    self.TravelCost[v[1] - 1][v[0]] == 1 or
-                    self.TravelCost[v[1] - 1][v[0]] > self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][
-                        v[0]]):
-                self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
-                self.TravelCost[v[1] - 1][v[0]] = self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][v[0]]
-                q.put([v[0], v[1] - 1])
-            if self.Path[v[1]][v[0] - 1] != -1 and (  # LEFT
-                    self.TravelCost[v[1]][v[0] - 1] == 1 or
-                    self.TravelCost[v[1]][v[0] - 1] > self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][
-                        v[0]]):
-                self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
-                self.TravelCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][v[0]]
-                q.put([v[0] - 1, v[1]])
-            if self.Path[v[1] + 1][v[0]] != -1 and (  # UP
-                    self.TravelCost[v[1] + 1][v[0]] == 1 or
-                    self.TravelCost[v[1] + 1][v[0]] > self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][
-                        v[0]]):
-                self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
-                self.TravelCost[v[1] + 1][v[0]] = self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][v[0]]
-                q.put([v[0], v[1] + 1])
-            if self.Path[v[1]][v[0] + 1] != -1 and (  # RIGHT
-                    self.TravelCost[v[1]][v[0] + 1] == 1 or
-                    self.TravelCost[v[1]][v[0] + 1] > self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][
-                        v[0]]):
-                self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
-                self.TravelCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][v[0]]
-                q.put([v[0] + 1, v[1]])
+            # Pathfinding time!
+            self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
+            self.PathCost = copy.deepcopy(self.BasePath)  # Reset tile costs board
+            self.TravelCost = copy.deepcopy(self.BasePath)  # Reset full path costs board
+            q = queue.Queue()  # BFS main queue
+            for players in self.PlayersList:
+                if players != self.player.number:
+                    v = TileMap.GetTile(self.players[players].pos_x, self.players[players].pos_y,
+                                        64)  # Get other player's position
+                    q.put(v)
+                    self.PathCost[v[1]][v[0]] = 16
+                    while not q.empty():
+                        v = q.get()
+                        if self.PathCost[v[1] - 1][v[0]] == 1:  # DOWN
+                            self.PathCost[v[1] - 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                            if self.PathCost[v[1] - 1][v[0]] > 1:
+                                q.put([v[0], v[1] - 1])
+                        if self.PathCost[v[1]][v[0] - 1] == 1:  # LEFT
+                            self.PathCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0]] / 4
+                            if self.PathCost[v[1]][v[0] - 1] > 1:
+                                q.put([v[0] - 1, v[1]])
+                        if self.PathCost[v[1] + 1][v[0]] == 1:  # UP
+                            self.Path[v[1] + 1][v[0]] = self.PathCost[v[1]][v[0]] / 4
+                            if self.Path[v[1] + 1][v[0]] > 1:
+                                q.put([v[0], v[1] + 1])
+                        if self.PathCost[v[1]][v[0] + 1] == 1:  # RIGHT
+                            self.PathCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0]] / 4
+                            if self.PathCost[v[1]][v[0] + 1] > 1:
+                                q.put([v[0] + 1, v[1]])
+            v = TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64)  # Player pos
+            q.put(v)
+            self.Path[v[1]][v[0]] = -1
+            while not q.empty():
+                v = q.get()
+                if self.Path[v[1] - 1][v[0]] != -1 and (  # DOWN
+                        self.TravelCost[v[1] - 1][v[0]] == 1 or
+                        self.TravelCost[v[1] - 1][v[0]] > self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][
+                            v[0]]):
+                    self.Path[v[1] - 1][v[0]] = [v[1], v[0]]
+                    self.TravelCost[v[1] - 1][v[0]] = self.PathCost[v[1] - 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                    q.put([v[0], v[1] - 1])
+                if self.Path[v[1]][v[0] - 1] != -1 and (  # LEFT
+                        self.TravelCost[v[1]][v[0] - 1] == 1 or
+                        self.TravelCost[v[1]][v[0] - 1] > self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][
+                            v[0]]):
+                    self.Path[v[1]][v[0] - 1] = [v[1], v[0]]
+                    self.TravelCost[v[1]][v[0] - 1] = self.PathCost[v[1]][v[0] - 1] + self.TravelCost[v[1]][v[0]]
+                    q.put([v[0] - 1, v[1]])
+                if self.Path[v[1] + 1][v[0]] != -1 and (  # UP
+                        self.TravelCost[v[1] + 1][v[0]] == 1 or
+                        self.TravelCost[v[1] + 1][v[0]] > self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][
+                            v[0]]):
+                    self.Path[v[1] + 1][v[0]] = [v[1], v[0]]
+                    self.TravelCost[v[1] + 1][v[0]] = self.PathCost[v[1] + 1][v[0]] + self.TravelCost[v[1]][v[0]]
+                    q.put([v[0], v[1] + 1])
+                if self.Path[v[1]][v[0] + 1] != -1 and (  # RIGHT
+                        self.TravelCost[v[1]][v[0] + 1] == 1 or
+                        self.TravelCost[v[1]][v[0] + 1] > self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][
+                            v[0]]):
+                    self.Path[v[1]][v[0] + 1] = [v[1], v[0]]
+                    self.TravelCost[v[1]][v[0] + 1] = self.PathCost[v[1]][v[0] + 1] + self.TravelCost[v[1]][v[0]]
+                    q.put([v[0] + 1, v[1]])
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.LEFT or key == arcade.key.A:
@@ -550,8 +606,9 @@ class TheGame(arcade.Window):
 def main():
     # Window config
     Window = TileMap.GetConfig("config")
-    Name = "Unknown"
+    Name = TileMap.ReadName()
     print(Name)
+    time.sleep(5)
     while True:
         try:
             # Socket config
