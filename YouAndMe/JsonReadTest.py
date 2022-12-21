@@ -230,3 +230,19 @@ def GetTables(Map):
     with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return Data["tables"]
+
+def GetFridge(Map):
+    with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["fridge"]
+
+
+def GetBowls(Map):
+    with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["bowls"]
+
+def GetSpawn(Map):
+    with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["spawn"]

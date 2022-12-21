@@ -137,7 +137,7 @@ class Camera:
             if not x + self.width / 2 >= self.width_map:
                 self.camera_x = x
         if not y - self.height / 2 <= 0:
-            if not y >= self.height_map:
+            if not y + self.height / 2 >= self.height_map:
                 self.camera_y = y
         self.camera.move([self.camera_x - self.width / 2, self.camera_y - self.height / 2])
 
@@ -175,7 +175,7 @@ class Camera:
                              font_name="Kenney Mini Square",
                              font_size=14,
                              color=arcade.color_from_hex_string("2e2117"),
-                             width=self.width / 4 - 6*2,
+                             width=self.width / 4 - 6 * 2,
                              multiline=True
                              )
 
@@ -201,14 +201,14 @@ class TheGame(arcade.Window):
                  playernumber,
                  sock,
                  Map):
-        super().__init__(title=title)
+        super().__init__( title=title)
 
         arcade.set_background_color(arcade.color.BLACK)
 
         self.PlayersList = []
 
         for i in range(TileMap.ReadPlayer()):
-            self.PlayersList.append("Player" + str(i+1))
+            self.PlayersList.append("Player" + str(i + 1))
 
         self.players = {}
         for players in self.PlayersList:
@@ -267,6 +267,12 @@ class TheGame(arcade.Window):
         self.PathCost = None
         self.TravelCost = None
         self.Target = None  # I need a place to go to, don't I?
+        self.Item = None
+        self.Order = None
+        self.Effect = None
+
+        self.products = TileMap.GetObjects(self.map)
+        self.bowls = TileMap.GetBowls(self.map)
 
     def setup(self, Map):
         TileScale = TileMap.GetScale(Map)
@@ -280,10 +286,10 @@ class TheGame(arcade.Window):
 
         self.BasePath = TileMap.GetPath(Map)
 
-        # first target
+        '''# first target
         self.Target = [random.randint(1, 28), random.randint(1, 28)]
         while self.BasePath[self.Target[1]][self.Target[0]] == -1:
-            self.Target = [random.randint(1, 28), random.randint(1, 28)]
+            self.Target = [random.randint(1, 28), random.randint(1, 28)]'''
 
         self.camera.set_position(self.player.pos_x, self.player.pos_y)
         self.sock.settimeout(0.02)
@@ -309,7 +315,7 @@ class TheGame(arcade.Window):
                 arcade.draw_line(
                     (s[0] * 64 + 32),
                     (s[1] * 64 + 32),
-                    (e[1] * 64 + 32),   # BAG
+                    (e[1] * 64 + 32),  # BAG
                     (e[0] * 64 + 32),
                     [128, 0, 0],
                     7
@@ -322,6 +328,39 @@ class TheGame(arcade.Window):
                 self.players[players].draw()
             else:
                 self.player.draw()
+
+        if self.Order:
+            arcade.draw_texture_rectangle(self.Order[0] * 64 + 32,
+                                          self.Order[1] * 64 + 32,
+                                          32,
+                                          32,
+                                          arcade.load_texture("Sprites/recept.png"))
+
+        for product in self.products:
+            arcade.draw_texture_rectangle(product['x'] * 64 + 32,
+                                          product['y'] * 64 + 32,
+                                          32,
+                                          32,
+                                          arcade.load_texture("Sprites/" + product['name'] + ".png"))
+
+        for bowl in self.bowls:
+            arcade.draw_texture_rectangle(bowl['x'] * 64 + 32,
+                                          bowl['y'] * 64 + 32,
+                                          32,
+                                          32,
+                                          arcade.load_texture("Sprites/" + 'bowl' + ".png"))
+
+        if self.Item:
+            if self.Item != "effect":
+                arcade.draw_texture_rectangle(self.player.pos_x,
+                                              self.player.pos_y + 72,
+                                              32,
+                                              32,
+                                              arcade.load_texture("Sprites/" + self.Item + ".png"))
+                self.Effect = None
+            else:
+                self.Effect.draw()
+
 
         for players in self.PlayersList:
             if players == self.player.number:
@@ -358,6 +397,7 @@ class TheGame(arcade.Window):
                 if self.players[players].action != 'Static':
                     self.players[players].sprite.update_animation()
 
+
         Client.DynamicSend(self.sock, str(self.player.player_information).encode())
 
         try:
@@ -380,6 +420,14 @@ class TheGame(arcade.Window):
                     self.players[players].name = Data[players]['name']
                 if Data[players]['name'] != "Unknown":
                     self.camera.set_name(players, Data[players]['name'])
+            self.Target = Data[self.player.number]['target']
+            if Data[self.player.number]['item'] != "effect":
+                self.Item = Data[self.player.number]['item']
+            else:
+                if not self.Effect:
+                    self.Effect = arcade.load_animated_gif("Sprites/effect.gif")
+                    self.Item = Data[self.player.number]['item']
+            self.Order = Data[self.player.number]['order']
         else:
             for players in self.PlayersList:
                 if players == self.player.number:
@@ -394,12 +442,16 @@ class TheGame(arcade.Window):
             else:
                 self.players[players].get_sprite()
 
-        # Setting a Target
+        if self.Effect:
+            self.Effect.update_animation()
+            self.Effect.set_position(self.player.pos_x, self.player.pos_y + 72)
+
+        '''# Setting a Target
         if self.Target == TileMap.GetTile(self.player.pos_x, self.player.pos_y, 64):
             self.player.plus_information(0, 1)
             self.Target = [random.randint(1, 28), random.randint(1, 28)]
             while self.BasePath[self.Target[1]][self.Target[0]] == -1:
-                self.Target = [random.randint(1, 28), random.randint(1, 28)]
+                self.Target = [random.randint(1, 28), random.randint(1, 28)]'''
 
         # Pathfinding time!
         self.Path = copy.deepcopy(self.BasePath)  # Reset pathing board
@@ -491,13 +543,14 @@ class TheGame(arcade.Window):
         elif key == arcade.key.ENTER:
             if self.camera.esc:
                 self.close()
+            else:
+                self.player.plus_information(0, 1)
 
 
 def main():
     # Window config
     Window = TileMap.GetConfig("config")
-    Name = TileMap.ReadName()
-    # Name = "Unknown"
+    Name = "Unknown"
     print(Name)
     while True:
         try:
@@ -571,3 +624,7 @@ def main():
 
 
 main()
+
+
+'''HOST = TileMap.GetLastIp()
+            PORT = int(TileMap.GetLastPort())'''

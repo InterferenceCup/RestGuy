@@ -1,9 +1,10 @@
 import random
+from os import listdir
 from threading import Thread
 import socket
 import pickle
 
-import arcade
+import requests
 
 import JsonReadTest as TileMap
 import ServerFunctions as server
@@ -37,6 +38,12 @@ class Recept:
 
     def up_stage(self):
         self.stage += 1
+
+    def down_stage(self):
+        self.stage -= 1
+
+    def null_stage(self):
+        self.stage = 0
 
     def is_it_ready(self):
         if self.stage == len(self.ingredients):
@@ -265,21 +272,38 @@ class Server:
 
     def __init__(self):
         # Map config
-        self.map = 'kitchen'
+        self.map = random.choice([f for f in listdir("Maps/")])
         self.walls = TileMap.ReadJson(self.map)
         self.tile_scale = TileMap.GetTileScale(self.map)
         self.tables = TileMap.GetTables(self.map)
-        self.order = self.create_pizza()
+        self.ingredients = self.Ingredients()
+        self.bowls = self.TablesForFood()
+        self.order = {}
+        self.food = [
+            "pizza",
+            "burger",
+            "chicken",
+            "ramen",
+            "omlet",
+            "friedegg",
+            "curry",
+            "bacon",
+            "spaghetti"
+        ]
 
-        # Lobby Config
         self.lobby_host = socket.gethostbyname(socket.gethostname())
-        self.lobby_port = 5000
+        self.lobby_port = random.randrange(1000, 10000)
+        while True:
+            try:
+                self.lobby_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
+                self.lobby_server.bind((self.lobby_host, self.lobby_port))  # Bind of socket
+                break
+            except:
+                self.lobby_port = random.randrange(1000, 10000)
+
         print("Host: " + str(self.lobby_host))
         print("Port: " + str(self.lobby_port))
-
-        # Lobby socket Config
-        self.lobby_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Creation if socket
-        self.lobby_server.bind((self.lobby_host, self.lobby_port))  # Bind of socket
+        TileMap.SetLastPort(str(self.lobby_port))
 
         # Init players
         self.players = {}
@@ -287,6 +311,13 @@ class Server:
         for i in range(TileMap.ReadPlayer()):
             self.player_list.append("Player" + str(i + 1))
             self.players["Player" + str(i + 1)] = self.create_players(352, 928)
+
+        for player in self.player_list:
+            self.order[player] = self.create_pizza(player)
+
+        for player in self.player_list:
+            self.players[player]['target'] = self.order[player].target()
+            self.players[player]['order'] = self.order[player].target()
 
         # Init server
         self.clients = {}
@@ -298,6 +329,7 @@ class Server:
         for players in self.player_list:
             print("\t - " + players)
 
+        self.end = False
 
     def create_players(self, X, Y):
         PlayerInformation = {
@@ -307,9 +339,9 @@ class Server:
             'ACTION': 'Static',
             'SCORE': 0,
             'name': 'Unknown',
-            'target': self.order.target(),
+            'target': None,
             'item': None,
-            'order': self.order.target()
+            'order': None
         }
         return PlayerInformation
 
@@ -384,33 +416,33 @@ class Server:
                         tile = TileMap.GetTile(self.players[player]['X'], self.players[player]['Y'], 64)
                         target = self.players[player]['target']
                         if tile[0] == target[0] and tile[1] == target[1]:
-                            if self.order.stage == "getting":
-                                self.order.stage = "cooking"
-                                self.players[player]["target"] = self.order.recept.get_ingredient().target()
-                                self.players[player]["item"] = self.order.texture
+                            if self.order[player].stage == "getting":
+                                self.order[player].stage = "cooking"
+                                self.players[player]["target"] = self.order[player].recept.get_ingredient().target()
+                                self.players[player]["item"] = self.order[player].texture
                                 self.players[player]["order"] = None
-                            elif self.order.stage == "cooking":
-                                self.players[player]["item"] = self.order.recept.get_ingredient().texture
-                                self.order.recept.up_stage()
-                                self.players[player]["target"] = self.order.table.target()
-                                self.order.stage = "bowl"
-                            elif self.order.stage == "bowl":
-                                if not self.order.recept.is_it_ready():
+                            elif self.order[player].stage == "cooking":
+                                self.players[player]["item"] = self.order[player].recept.get_ingredient().texture
+                                self.order[player].recept.up_stage()
+                                self.players[player]["target"] = self.order[player].table.target()
+                                self.order[player].stage = "bowl"
+                            elif self.order[player].stage == "bowl":
+                                if not self.order[player].recept.is_it_ready():
                                     self.players[player]["item"] = None
-                                    self.players[player]["target"] = self.order.recept.get_ingredient().target()
-                                    self.order.stage = "cooking"
+                                    self.players[player]["target"] = self.order[player].recept.get_ingredient().target()
+                                    self.order[player].stage = "cooking"
                                 else:
-                                    self.players[player]["item"] = self.order.recept.texture
-                                    self.order.stage = "giving"
-                                    self.players[player]["target"] = self.order.target()
-                            elif self.order.stage == "giving":
+                                    self.players[player]["item"] = self.order[player].recept.texture
+                                    self.order[player].stage = "giving"
+                                    self.players[player]["target"] = self.order[player].target()
+                            elif self.order[player].stage == "giving":
                                 self.players[player]['SCORE'] += 1
-                                self.order = self.create_pizza()
-                                self.players[player]["target"] = self.order.target()
+                                self.order[player] = self.create_pizza(player)
+                                self.players[player]["target"] = self.order[player].target()
                                 self.players[player]["item"] = None
-                                self.players[player]["order"] = self.order.target()
+                                self.players[player]["order"] = self.order[player].target()
                         information -= 1
-                    # If action is not right
+                        # If action is not right
                     if information == 192:
                         information = 0
                     elif information == 48:
@@ -420,6 +452,18 @@ class Server:
                                                         self.players[player],
                                                         self.walls,
                                                         self.tile_scale)  # Making new position
+                    if self.IsItOnOneTile(player):
+                        if self.order[player].stage == "bowl":
+                            self.order[player].recept.down_stage()
+                            self.players[player]['item'] = "effect"
+                            self.players[player]["target"] = self.order[player].recept.get_ingredient().target()
+                            self.order[player].stage = "cooking"
+                        elif self.order[player].stage == "giving":
+                            self.order[player].recept.null_stage()
+                            self.players[player]['item'] = "effect"
+                            self.players[player]["target"] = self.order[player].recept.get_ingredient().target()
+                            self.order[player].stage = "cooking"
+
             except:
                 print("Data has benn broken")
 
@@ -437,6 +481,10 @@ class Server:
             else:
                 self.servers[player].using = True
 
+            self.IsItEnd()
+            if self.end:
+                return 0
+
     def start(self):
         for player in self.player_list:
             self.threads[player] = Thread(target=self.working, args=(self.servers[player], player))
@@ -446,36 +494,112 @@ class Server:
             self.threads[thread].start()
         for thread in self.threads:
             self.threads[thread].join()
+        print("All sockets has stopped")
 
     def reconnect(self):
         print("Reconnect active")
-        while True:
-            client, adress = self.lobby_server.accept()
-            for servers in self.servers:
-                if not self.servers[servers].using:
-                    print("Server Found")
-                    server.DynamicSend(client, self.servers[servers].port.encode('utf-8'))
-                    break
-                else:
-                    print("Server is blocked")
+        self.lobby_server.settimeout(1)
+        while True and not self.end:
+            try:
+                client, adress = self.lobby_server.accept()
+                for servers in self.servers:
+                    if not self.servers[servers].using:
+                        print("Server Found")
+                        server.DynamicSend(client, self.servers[servers].port.encode('utf-8'))
+                        break
+                    else:
+                        print("Server is blocked")
+            except:
+                client = None
 
-    def create_pizza(self):
-        ingredients = [Ingredient([3, 5], [0, -1], "cheese"),
-                       Ingredient([5, 5], [0, -1], "meat"),
-                       Ingredient([1, 6], [0, -1], "ketchup")]
-        recept = Recept(ingredients, "pizza")
+    def create_pizza(self, player_number):
+        ingredients = [random.choice(list(self.ingredients.values())),
+                       random.choice(list(self.ingredients.values())),
+                       random.choice(list(self.ingredients.values()))]
+        recept = Recept(ingredients, random.choice(self.food))
         config = random.choice(self.tables)
-        table = Ingredient([8, 5], [-1, 0], "bowl")
+        table = self.bowls[player_number]
         order = Order([config['x'], config['y']], [config['delta_x'], config['delta_y']], recept, table)
         return order
 
+    def Ingredients(self):
+        objects = TileMap.GetObjects(self.map)
+        fridge = TileMap.GetFridge(self.map)
+        ingredients = {}
+        for obj in objects:
+            ingredients[obj["name"]] = Ingredient(
+                [obj['x'], obj['y']],
+                [obj['delta_x'], obj['delta_y']],
+                obj["name"]
+            )
+        for obj in fridge:
+            ingredients[obj["name"]] = Ingredient(
+                [obj['x'], obj['y']],
+                [obj['delta_x'], obj['delta_y']],
+                obj["name"]
+            )
+        return ingredients
+
+    def TablesForFood(self):
+        tables = {}
+        tables_without_food = TileMap.GetBowls(self.map)
+        i = 0
+        for obj in tables_without_food:
+            tables["Player" + str(i + 1)] = Ingredient(
+                [obj['x'], obj['y']],
+                [obj['delta_x'], obj['delta_y']],
+                'bowl'
+            )
+            i += 1
+        return tables
+
+    def IsItOnOneTile(self, player):
+        MyTile = TileMap.GetTile(self.players[player]['X'], self.players[player]['Y'], 64)
+        for players in self.players:
+            if players != player:
+                HisTile = TileMap.GetTile(self.players[players]['X'], self.players[players]['Y'], 64)
+                if MyTile[0] == HisTile[0] and MyTile[1] == HisTile[1]:
+                    return True
+        return False
+
+    def IsItEnd(self):
+        for players in self.players:
+            if self.players[players]["SCORE"] == 1:
+                self.end = True
+                break
+
+    def SendAllData(self):
+        for players in self.players:
+            if self.players[players]["name"] != "Unknown":
+                try:
+                    with requests.Session() as s:
+                        steps = 0
+                        orders = 0
+                        result = s.get('http://localhost:8080/users').text
+                        result = result.split(sep='|')
+                        for i in range(len(result) - 1):
+                            result[i] = result[i].split(sep='-')
+                        print(result)
+                        for res in result:
+                            if res[0].strip() == self.players[players]["name"]:
+                                steps = int(res[2].strip())
+                                orders = int(res[3].strip())
+                        payload = {
+                            'username': self.players[players]["name"],
+                            'steps': int(self.players[players]["SCORE"] * 10.5) + steps,
+                            'orders': self.players[players]["SCORE"] + orders
+                        }
+                        s.post('http://localhost:8080/update', data=payload)
+                except:
+                    print("No connection to server")
 
 
 def main():
     ThreadingServer = Server()
     ThreadingServer.connecting()
     ThreadingServer.start()
-    print("That's all")
+    ThreadingServer.SendAllData()
+    print("Your server has stopped")
 
 
 main()

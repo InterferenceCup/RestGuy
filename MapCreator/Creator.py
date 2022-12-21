@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from shutil import copyfile as Copy
 
 '''def Crop(Path, Input, Height, Width):
@@ -130,7 +131,7 @@ def ReadNewLayers(JsonName):
     return Layers
 
 
-def CreateConfig(JsonName, Layers, Tables):
+def CreateConfig(JsonName, Layers, Tables, Objects, Fridge, Bowls, Spawn):
     Config = {
         "layers": [],
         "scale": 1,
@@ -139,7 +140,11 @@ def CreateConfig(JsonName, Layers, Tables):
             "map_width": Layers[0]["width"] * 64,
             "map_height": Layers[0]["height"] * 64
         },
-        "tables": Tables
+        "tables": Tables,
+        "objects": Objects,
+        "fridge": Fridge,
+        "bowls": Bowls,
+        "spawn": Spawn
     }
 
     Matrix = Layers[1]["data"]
@@ -181,6 +186,142 @@ def CreateTables(Layers):
 
     return Tables
 
+def CreateSpawn(Layers):
+    Layer = None
+    for layer in Layers:
+        if layer["name"] == "Spawn":
+            Layer = layer
+    Spawn = []
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                Spawn.append({
+                    'x': w,
+                    'y': Width - 1 - h
+                })
+
+    return Spawn
+
+def CreateBowls(Layers):
+    for layer in Layers:
+        if layer["name"] == "Bowls":
+            Layer = layer
+    Bowls = []
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                Bowls.append({
+                    'x': w,
+                    'y': Width - 1 - h,
+                    'delta_x': 0,
+                    'delta_y': 0
+                })
+
+    for layer in Layers:
+        if layer["name"] == "Bowls_X_Y":
+            Layer = layer
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    i = 0
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                Bowls[i]["delta_x"] = w - Bowls[i]["x"]
+                Bowls[i]["delta_y"] = Width - 1 - h - Bowls[i]["y"]
+                i += 1
+
+    return Bowls
+
+
+def CreateProducts(Layers):
+    Layer = None
+    for layer in Layers:
+        if layer["name"] == "Products":
+            Layer = layer
+    Objects = []
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    Products = [
+        "cheese",
+        "ketchup",
+        "meat",
+        "bread",
+        "egg",
+        "fish",
+        "potato",
+        "apple",
+        "milk",
+        "mushroom"
+    ]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                i = random.randrange(0, len(Products))
+                Objects.append({
+                    'name': Products[i],
+                    'x': w,
+                    'y': Width - 1 - h,
+                    'delta_x': 0,
+                    'delta_y': 0
+                })
+                Products.pop(i)
+
+    for layer in Layers:
+        if layer["name"] == "Products_X_Y":
+            Layer = layer
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    j = 0
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                Objects[j]["delta_x"] = w - Objects[j]["x"]
+                Objects[j]["delta_y"] = Width - 1 - h - Objects[j]["y"]
+                j += 1
+
+    for layer in Layers:
+        if layer["name"] == "Fridge":
+            Layer = layer
+    Fridge = []
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                for i in range(len(Products)):
+                    Fridge.append({
+                        'name': Products[i],
+                        'x': w,
+                        'y': Width - 1 - h,
+                        'delta_x': 0,
+                        'delta_y': 0
+                    })
+
+    for layer in Layers:
+        if layer["name"] == "Fridge_X_Y":
+            Layer = layer
+    Matrix = Layer["data"]
+    Height = Layer["height"]
+    Width = Layer["width"]
+    for h in range(Height):
+        for w in range(Width):
+            if Matrix[w + h * Width] != 0:
+                for i in range(len(Products)):
+                    Fridge[i]["delta_x"] = w - Fridge[i]["x"]
+                    Fridge[i]["delta_y"] = Width - 1 - h - Fridge[i]["y"]
+
+    return Objects, Fridge
+
 
 def main():
     # INPUT
@@ -194,6 +335,25 @@ def main():
     for i in range(len(Layers)):
         if Layers[i]["name"] == "Tables":
             Layers.pop(i)
+            break
+    Objects, Fridge = CreateProducts(Layers)
+    try:
+        for i in range(len(Layers)):
+            if Layers[i]["name"] == "Products" or Layers[i]["name"] == "Products_X_Y" or Layers[i]["name"] == "Fridge" or Layers[i]["name"] == "Fridge_X_Y":
+                Layers.pop(i)
+                i -= 1
+    except:
+        i = 0
+    Bowls = CreateBowls(Layers)
+    for i in range(len(Layers)):
+        if Layers[i]["name"] == "Bowls":
+            Layers.pop(i)
+            break
+    Spawn = CreateSpawn(Layers)
+    for i in range(len(Layers)):
+        if Layers[i]["name"] == "Spawn":
+            Layers.pop(i)
+            break
     # NewLayers = Splitting(JsonName, Layers)
     File = ReadAllFile(JsonName)
     PrintFile(JsonName, File)
@@ -201,7 +361,7 @@ def main():
     # Crop("Maps/" + JsonName + "/Sprite", JsonName, 64, 64)
 
     # SECOND CREATION
-    CreateConfig(JsonName, Layers, Tables)
+    CreateConfig(JsonName, Layers, Tables, Objects, Fridge, Bowls, Spawn)
 
 
 main()

@@ -924,5 +924,105 @@
             "delta_x": 0,
             "delta_y": 0
         }
+    ],
+    "objects": [
+        {
+            "name": "fish",
+            "x": 4,
+            "y": 7,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "milk",
+            "x": 3,
+            "y": 5,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "meat",
+            "x": 5,
+            "y": 5,
+            "delta_x": 0,
+            "delta_y": -1
+        }
+    ],
+    "fridge": [
+        {
+            "name": "cheese",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "ketchup",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "bread",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "egg",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "potato",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "apple",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        },
+        {
+            "name": "mushroom",
+            "x": 1,
+            "y": 6,
+            "delta_x": 0,
+            "delta_y": -1
+        }
+    ],
+    "bowls": [
+        {
+            "x": 8,
+            "y": 5,
+            "delta_x": -1,
+            "delta_y": 0
+        },
+        {
+            "x": 8,
+            "y": 4,
+            "delta_x": -1,
+            "delta_y": 0
+        },
+        {
+            "x": 8,
+            "y": 3,
+            "delta_x": -1,
+            "delta_y": 0
+        },
+        {
+            "x": 8,
+            "y": 2,
+            "delta_x": -1,
+            "delta_y": 0
+        }
     ]
 }

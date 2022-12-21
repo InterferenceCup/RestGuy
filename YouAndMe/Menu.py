@@ -107,6 +107,13 @@ class MainGame(arcade.Window):
         self.feedbacks = None
         self.rating = 1
 
+        self.music_list = ['Music/fuwa-time.mp3']
+        self.current_song_index = 0
+        self.music = arcade.Sound(self.music_list[self.current_song_index], streaming=True)
+        self.current_player = self.music.play(0.5)
+
+        self.play_song()
+
     def on_play_button_click(self, event):
         self.now_menu = 'play'
         self.set_manager()
@@ -136,7 +143,6 @@ class MainGame(arcade.Window):
                 with requests.Session() as s:
                     result = str(s.post('http://localhost:8080/find/account', data=payload).content.decode()).split(
                         sep='|')
-                    print(result)
                 self.menu[self.now_menu]['information'].child.text = (
                         self.helper[self.now_menu]['information'] +
                         self.helper[self.now_menu]['name'] + result[0] +
@@ -193,7 +199,6 @@ class MainGame(arcade.Window):
             }
             with requests.Session() as s:
                 result = str(s.post('http://localhost:8080/password', data=payload).content.decode())
-            print(result)
             if result == "Successful changes.":
                 Config.SetLastPassword(self.menu[self.now_menu]['new_password'].child.text)
                 self.menu[self.now_menu]['information'].child.text = (self.helper[self.now_menu]['successful'] +
@@ -261,6 +266,18 @@ class MainGame(arcade.Window):
         self.update_maps()
         self.set_manager()
 
+    def advance_song(self):
+        self.current_song_index += 1
+        if self.current_song_index >= len(self.music_list):
+            self.current_song_index = 0
+
+    def play_song(self):
+        if self.music:
+            self.music.stop(self.current_player)
+            self.music = arcade.Sound(self.music_list[self.current_song_index], streaming=True)
+        self.current_player = self.music.play(0.5)
+        time.sleep(0.03)
+
     def update_maps(self):
         files = [f for f in listdir("Maps/")]
         payload = {
@@ -289,6 +306,12 @@ class MainGame(arcade.Window):
             self.maps = files
         except:
             self.menu[self.now_menu]['information'].child.text = self.helper[self.now_menu]['connection_error']
+
+    def on_update(self, dt):
+        position = self.music.get_stream_position(self.current_player)
+        if position == 0.0:
+            self.advance_song()
+            self.play_song()
 
     def on_delete_map_click(self, event):
         map_name = self.menu[self.now_menu]['map_name_input'].child.text.lower()
@@ -409,7 +432,7 @@ class MainGame(arcade.Window):
             result = self.sorting(result, 2)
             for i in range(len(result) - 1):
                 text = text + str(i + 1) + ')        ' + result[i][0].strip() + '        with score        ' + str(
-                    result[i][2].strip()) + '\n'
+                    result[i][3].strip()) + '\n'
             self.menu[self.now_menu]['leaders_board'].child.text = text
         except:
             self.menu[self.now_menu]['leaders_board'].child.text = self.helper[self.now_menu]['connection_error']
@@ -503,7 +526,6 @@ class MainGame(arcade.Window):
                                                 stdout=subprocess.PIPE,
                                                 stdin=subprocess.DEVNULL,
                                                 stderr=subprocess.STDOUT)
-        print("Server start!")
 
     def on_connect_to_host_button_click(self, event):
         if self.player == None:
@@ -515,16 +537,13 @@ class MainGame(arcade.Window):
                                            stdin=subprocess.DEVNULL,
                                            stderr=subprocess.STDOUT)
 
-        print("Server start!")
 
     def player_console(self):
         self.player_text = "---PLAYER OUTPUT---\n"
         while True and self.player:
             output = self.player.stdout.readline().decode()
             if output != None and self.player_text != None:
-                print(output)
                 self.player_text = self.player_text + output
-        print("Stop reading")
 
     def sorting(self, massive, num):
         copy = []
@@ -545,9 +564,7 @@ class MainGame(arcade.Window):
         while True and self.host:
             output = self.host.stdout.readline().decode()
             if output != None and self.host_text != None:
-                print(output)
                 self.host_text = self.host_text + output
-        print("Stop reading")
 
     def host_player_console(self):
         try:
@@ -555,11 +572,9 @@ class MainGame(arcade.Window):
             while True and self.host_player:
                 output = self.host_player.stdout.readline().decode()
                 if output != None and self.host_player_text != None:
-                    print(output)
                     self.host_player_text = self.host_player_text + output
         except:
             print("Stop reading")
-        print("Stop reading")
 
     # Creating on_draw() function to draw on the screen
     def on_draw(self):

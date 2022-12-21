@@ -131,7 +131,7 @@ def SaveAnimations(Input):
 
 
 def main():
-    Input = "Player2"
+    Input = "Player4"
     Crop(Input, 64, 64)
     SaveStatic(Input)
     SaveAnimations(Input)

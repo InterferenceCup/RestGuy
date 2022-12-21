@@ -241,12 +241,12 @@ def main():
     Players = {
         'Player1': PlayerOneInformation,
         'Player2': PlayerTwoInformation,
-        'Player3': PlayerThreeInformation
+        'Player1': PlayerThreeInformation
     }
     PlayersList = [
         'Player1',
         'Player2',
-        'Player3'
+        'Player1'
     ]
 
     # Connection to Client
