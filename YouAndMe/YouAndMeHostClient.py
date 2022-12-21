@@ -288,6 +288,7 @@ class TheGame(arcade.Window):
         self.Item = None
         self.Order = None
         self.Effect = None
+        self.Items = {}
 
         self.products = TileMap.GetObjects(self.map)
         self.bowls = TileMap.GetBowls(self.map)
@@ -311,7 +312,7 @@ class TheGame(arcade.Window):
             self.Target = [random.randint(1, 28), random.randint(1, 28)]'''
 
         self.camera.set_position(self.player.pos_x, self.player.pos_y)
-        self.sock.settimeout(0.02)
+        # self.sock.settimeout(0.1)
 
     def on_draw(self):
         arcade.start_render()
@@ -403,6 +404,12 @@ class TheGame(arcade.Window):
                                  font_size=14,
                                  font_name="Kenney Blocks",
                                  anchor_x='center')
+                if self.Items[players] and self.Items[players] != 'effect':
+                    arcade.draw_texture_rectangle(self.players[players].pos_x,
+                                                  self.players[players].pos_y + 72,
+                                                  32,
+                                                  32,
+                                                  arcade.load_texture("Sprites/" + self.Items[players] + ".png"))
 
         if self.end:
             arcade.draw_rectangle_filled(
@@ -443,7 +450,7 @@ class TheGame(arcade.Window):
 
     def update(self, delta_time):
         for players in self.PlayersList:
-            if self.camera.score[players] == 1:
+            if self.camera.score[players] == 10:
                 self.end = True
         if not self.end:
             for players in self.PlayersList:
@@ -474,6 +481,7 @@ class TheGame(arcade.Window):
                         self.players[players].set_sprite(Data[players]['SPRITE'], Data[players]['ACTION'])
                         self.camera.set_score(players, Data[players]['SCORE'])
                         self.players[players].name = Data[players]['name']
+                        self.Items[players] = Data[players]['item']
                     if Data[players]['name'] != "Unknown":
                         self.camera.set_name(players, Data[players]['name'])
                 self.Target = Data[self.player.number]['target']

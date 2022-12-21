@@ -92,13 +92,13 @@ def GetInformation(Information, NumberOfBit, Value):
 
 
 # Edit position
-def EditPosition(information, PlayerInformation, Walls, TileScale):
+def EditPosition(information, PlayerInformation, Walls, TileScale, MovementSpeed):
     # Client Config
     RadiusUp = 10
     RadiusDown = 32
     RadiusLeft = 20
     RadiusRight = 20
-    MovementSpeed = 5
+    # MovementSpeed = 5
 
     if information == 0:
         PlayerInformation['X'] += 0
@@ -359,7 +359,7 @@ class Server:
                     continue
                 self.servers[player].listen()
                 self.servers[player].client, self.servers[player].adress = self.servers[player].accept()
-                self.servers[player].sock.settimeout(0.5)
+                self.servers[player].sock.settimeout(0.02)
                 print("\t - Accepted Connection")
                 if server.DynamicSend(self.servers[player].client, player.encode('utf-8')) != 0:  # Send name of Client
                     print("\t - Reconnecting")
@@ -447,11 +447,15 @@ class Server:
                         information = 0
                     elif information == 48:
                         information = 0
+                    speed = 5
+                    if self.servers[player].adress[0] != socket.gethostbyname(socket.gethostname()):
+                        speed = 15
                     self.servers[player].information = information
                     self.players[player] = EditPosition(information,
                                                         self.players[player],
                                                         self.walls,
-                                                        self.tile_scale)  # Making new position
+                                                        self.tile_scale,
+                                                        speed)  # Making new position
                     if self.IsItOnOneTile(player):
                         if self.order[player].stage == "bowl":
                             self.order[player].recept.down_stage()
@@ -564,7 +568,7 @@ class Server:
 
     def IsItEnd(self):
         for players in self.players:
-            if self.players[players]["SCORE"] == 1:
+            if self.players[players]["SCORE"] == 10:
                 self.end = True
                 break
 
