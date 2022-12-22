@@ -63,12 +63,9 @@
         296,
         292,
         293,
-        297,
         276,
         316,
         274,
-        291,
-        317,
         242
     ],
     "scale": 1,
@@ -517,13 +514,6 @@
             "x_left": -32,
             "center": 0
         },
-        "297": {
-            "y_top": 32,
-            "y_down": -32,
-            "x_right": 32,
-            "x_left": -32,
-            "center": 0
-        },
         "276": {
             "y_top": 32,
             "y_down": -32,
@@ -539,20 +529,6 @@
             "center": 0
         },
         "274": {
-            "y_top": 32,
-            "y_down": -32,
-            "x_right": 32,
-            "x_left": -32,
-            "center": 0
-        },
-        "291": {
-            "y_top": 32,
-            "y_down": -32,
-            "x_right": 32,
-            "x_left": -32,
-            "center": 0
-        },
-        "317": {
             "y_top": 32,
             "y_down": -32,
             "x_right": 32,
@@ -715,56 +691,56 @@
     ],
     "objects": [
         {
-            "name": "fish",
+            "name": "apple",
             "x": 6,
             "y": 8,
             "delta_x": 0,
             "delta_y": -1
         },
         {
-            "name": "potato",
+            "name": "egg",
             "x": 7,
             "y": 8,
             "delta_x": 0,
             "delta_y": -1
         },
         {
-            "name": "bread",
+            "name": "mushroom",
             "x": 3,
             "y": 6,
             "delta_x": 0,
             "delta_y": -1
         },
         {
-            "name": "ketchup",
+            "name": "milk",
             "x": 2,
             "y": 4,
             "delta_x": -1,
             "delta_y": 0
         },
         {
-            "name": "milk",
+            "name": "cheese",
             "x": 5,
             "y": 4,
             "delta_x": 1,
             "delta_y": 0
         },
         {
-            "name": "cheese",
+            "name": "meat",
             "x": 5,
             "y": 3,
             "delta_x": 1,
             "delta_y": 0
         },
         {
-            "name": "egg",
+            "name": "ketchup",
             "x": 2,
             "y": 2,
             "delta_x": -1,
             "delta_y": 0
         },
         {
-            "name": "mushroom",
+            "name": "fish",
             "x": 4,
             "y": 2,
             "delta_x": -1,
@@ -773,14 +749,14 @@
     ],
     "fridge": [
         {
-            "name": "meat",
+            "name": "bread",
             "x": 8,
             "y": 7,
             "delta_x": 0,
             "delta_y": -1
         },
         {
-            "name": "apple",
+            "name": "potato",
             "x": 8,
             "y": 7,
             "delta_x": 0,

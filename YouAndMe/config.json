@@ -2,9 +2,11 @@
     "screen_width": 700,
     "screen_height": 700,
     "title": "Title",
-    "last_ip": "26.253.135.228",
-    "last_port": "7286",
+    "last_ip": "26.192.234.119",
+    "last_port": "1865",
     "last_username": "nikita",
     "last_password": "password",
-    "player": 3
+    "player": 1,
+    "master_speed": 5,
+    "client_speed": 10
 }

@@ -221,15 +221,18 @@ def ReadPlayer():
         Data = json.load(Config)
     return Data["player"]
 
+
 def GetObjects(Map):
     with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return Data["objects"]
 
+
 def GetTables(Map):
     with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return Data["tables"]
+
 
 def GetFridge(Map):
     with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
@@ -242,7 +245,20 @@ def GetBowls(Map):
         Data = json.load(Config)
     return Data["bowls"]
 
+
 def GetSpawn(Map):
     with open("Maps/" + Map + "/" + Map + '_config.json', 'r', encoding='utf-8') as Config:
         Data = json.load(Config)
     return Data["spawn"]
+
+
+def GetMasterSpeed():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["master_speed"]
+
+
+def GetClientSpeed():
+    with open('config.json', 'r', encoding='utf-8') as Config:
+        Data = json.load(Config)
+    return Data["client_speed"]

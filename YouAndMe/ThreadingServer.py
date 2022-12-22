@@ -312,12 +312,16 @@ class Server:
             self.player_list.append("Player" + str(i + 1))
             self.players["Player" + str(i + 1)] = self.create_players(352, 928)
 
+        self.spawn = self.CreateSpawn()
+
         for player in self.player_list:
             self.order[player] = self.create_pizza(player)
 
         for player in self.player_list:
             self.players[player]['target'] = self.order[player].target()
             self.players[player]['order'] = self.order[player].target()
+            self.players[player]['X'] = self.spawn[player]['x'] * 64 + 32
+            self.players[player]['Y'] = self.spawn[player]['y'] * 64 + 32
 
         # Init server
         self.clients = {}
@@ -330,6 +334,8 @@ class Server:
             print("\t - " + players)
 
         self.end = False
+        self.master_speed = TileMap.GetMasterSpeed()
+        self.client_speed = TileMap.GetClientSpeed()
 
     def create_players(self, X, Y):
         PlayerInformation = {
@@ -447,9 +453,9 @@ class Server:
                         information = 0
                     elif information == 48:
                         information = 0
-                    speed = 5
+                    speed = self.master_speed
                     if self.servers[player].adress[0] != socket.gethostbyname(socket.gethostname()):
-                        speed = 15
+                        speed = self.client_speed
                     self.servers[player].information = information
                     self.players[player] = EditPosition(information,
                                                         self.players[player],
@@ -596,6 +602,15 @@ class Server:
                         s.post('http://localhost:8080/update', data=payload)
                 except:
                     print("No connection to server")
+
+    def CreateSpawn(self):
+        spawn_base = TileMap.GetSpawn(self.map)
+        spawn = {}
+        i = 0
+        for players in self.player_list:
+            spawn[players] = spawn_base[i]
+            i += 1
+        return spawn
 
 
 def main():
